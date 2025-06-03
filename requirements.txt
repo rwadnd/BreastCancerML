@@ -1,1 +1,7 @@
 kagglehub
+plotly
+scipy
+sklearn
+xgboost
+lightgbm
+imblearn
