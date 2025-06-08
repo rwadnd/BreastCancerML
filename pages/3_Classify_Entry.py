@@ -72,14 +72,14 @@ def main():
     # Define a list of default model types for each of the 9 slots
     default_model_types = [
         "Logistic Regression",
-        "Random Forest",
-        "SVM",
         "Gradient Boosting",
-        "K-Nearest Neighbors",
-        "Naive Bayes",
         "Decision Tree",
+        "Random Forest",
         "XGBoost",
-        "LightGBM"
+        "LightGBM",
+        "SVM",
+        "K-Nearest Neighbors",
+        "Naive Bayes"
     ]
 
     # Initialize models configuration for this page if not present
@@ -197,22 +197,24 @@ def main():
 
                     # Conditional parameter inputs based on selected model type
                     if model_type == "Logistic Regression":
-                        C = st.select_slider(f"C ", options=[0.01, 0.1, 1, 10, 100], value=1, key=f"C_slot_{idx}")
-                        penalty = st.selectbox(f"Penalty ", ["l2", "l1", "elasticnet", "none"], key=f"penalty_slot_{idx}")
-                        solver = st.selectbox(f"Solver ", ["lbfgs", "liblinear", "saga"], key=f"solver_slot_{idx}")
-                        fit_intercept = st.checkbox(f"Fit Intercept ", value=True, key=f"fit_int_slot_{idx}")
-                        class_weight = st.selectbox(f"Class Weight ", [None, "balanced"], key=f"lw_slot_{idx}")
+                        C = st.select_slider(f"C ", options=[0.01, 0.1, 1, 10, 100], value=1, key=f"C_{idx}")
+                        penalty = st.selectbox(f"Penalty ", ["l2", "l1", "elasticnet"], key=f"penalty_{idx}")
+                        if penalty == 'l1':
+                            available_solvers = ["liblinear", "saga"]
+                        elif penalty == 'elasticnet':
+                            available_solvers = ["saga"]
+                        elif penalty == 'none':
+                            available_solvers = ["lbfgs", "saga"]
+                        else:
+                            available_solvers = ["lbfgs", "liblinear", "newton-cg", "sag", "saga"]
+                        solver = st.selectbox(f"Solver ",available_solvers, key=f"solver_{idx}")
+                        fit_intercept = st.checkbox(f"Fit Intercept ", value=True, key=f"fit_int_{idx}")
+                        class_weight = st.selectbox(f"Class Weight ", [None, "balanced"], key=f"lw_{idx}")
                         model_params = {"C": C, "penalty": penalty, "solver": solver, "max_iter": 1000, "fit_intercept": fit_intercept, "class_weight": class_weight}
-                        if penalty == 'l1' and solver not in ['liblinear', 'saga']:
-                            st.warning("L1 penalty requires 'liblinear' or 'saga' solver for Logistic Regression.")
-                        if penalty == 'elasticnet' and solver != 'saga':
-                            st.warning("Elasticnet penalty requires 'saga' solver for Logistic Regression.")
-                        if penalty == 'none' and solver not in ['lbfgs', 'saga']:
-                            st.warning("'None' penalty requires 'lbfgs' or 'saga' solver for Logistic Regression.")
 
                     elif model_type == "Random Forest":
-                        n_estimators = st.slider(f"Trees ", 10, 200, step=10, value=100, key=f"n_slot_{idx}")
-                        max_depth = st.selectbox(f"Max Depth ", [None, 5, 10, 20, 30], key=f"depth_slot_{idx}")
+                        n_estimators = st.slider(f"Trees ", 10, 500, step=10, value=100, key=f"n_slot_{idx}")
+                        max_depth = st.slider(f"Max Depth ", 5, 500, step=10, key=f"depth_slot_{idx}")
                         criterion = st.selectbox(f"Criterion ", ["gini", "entropy", "log_loss"], key=f"crit_slot_{idx}")
                         min_samples_split = st.slider(f"Min Samples Split ", 2, 20, value=2, key=f"min_split_slot_{idx}")
                         min_samples_leaf = st.slider(f"Min Samples Leaf ", 1, 20, value=1, key=f"min_leaf_slot_{idx}")
@@ -234,7 +236,7 @@ def main():
                     elif model_type == "Gradient Boosting":
                         n_estimators = st.slider(f"GB Trees ", 50, 300, step=50, value=100, key=f"gb_n_slot_{idx}")
                         learning_rate = st.select_slider(f"GB Learning Rate ", options=[0.01, 0.05, 0.1, 0.2], value=0.1, key=f"gb_lr_slot_{idx}")
-                        max_depth = st.selectbox(f"GB Max Depth ", [3, 5, 8, None], key=f"gb_depth_slot_{idx}")
+                        max_depth = st.slider(f"GB Max Depth ", 3, 8, step=1, key=f"gb_depth_{idx}")
                         subsample = st.select_slider(f"GB Subsample ", options=[0.7, 0.8, 0.9, 1.0], value=1.0, key=f"gb_subsample_slot_{idx}")
                         model_params = {"n_estimators": n_estimators, "learning_rate": learning_rate, "max_depth": max_depth, "subsample": subsample, "random_state": 42}
 
@@ -249,7 +251,7 @@ def main():
                         model_params = {"var_smoothing": var_smoothing}
 
                     elif model_type == "Decision Tree":
-                        max_depth = st.selectbox(f"DT Max Depth ", [None, 5, 10, 20, 30], key=f"dt_depth_slot_{idx}")
+                        max_depth = st.slider(f"DT Max Depth ", 5, 50, step=1, key=f"dt_depth_{idx}")
                         min_samples_split = st.slider(f"Min Samples Split ", 2, 20, value=2, key=f"min_split_slot_{idx}")
                         min_samples_leaf = st.slider(f"Min Samples Leaf ", 1, 20, value=1, key=f"min_leaf_slot_{idx}")
                         criterion = st.selectbox(f"Criterion ", ["gini", "entropy", "log_loss"], key=f"dt_crit_slot_{idx}")
@@ -527,7 +529,10 @@ def main():
                                         if hasattr(model_for_display, 'predict_proba'):
                                             probabilities = model_for_display.predict_proba(input_for_prediction_display)[0]
                                             confidence = probabilities[prediction] * 100
-                                            st.success(f"Prediction: **{prediction_label}**")
+                                            if prediction == 1:
+                                                st.error(f"Prediction: **{prediction_label}**")
+                                            elif prediction == 0:
+                                                st.success(f"Prediction: **{prediction_label}**")
                                             st.info(f"Confidence: {confidence:.2f}%")
                                         else:
                                             st.success(f"Prediction: **{prediction_label}**")
