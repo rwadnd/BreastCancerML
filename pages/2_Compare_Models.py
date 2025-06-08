@@ -155,7 +155,7 @@ def main():
             elif model_type == "SVM":
                 C = st.select_slider(f"SVM C {i+1}", options=[0.1, 1, 10, 100, 1000], value=1, key=f"svmC_{i}")
                 kernel = st.selectbox(f"Kernel {i+1}", ["linear", "rbf", "poly", "sigmoid"], key=f"kernel_{i}")
-                gamma = st.selectbox(f"Gamma {i+1}", ["scale", "auto"], key=f"gamma_{i}")
+                gamma = st.selectbox(f"Gamma {i+1}", ["auto", "scale"], key=f"gamma_{i}")
                 degree = st.slider(f"Degree (for poly) {i+1}", 2, 5, value=3, key=f"degree_{i}", disabled=(kernel != "poly"))
                 coef0 = st.slider(f"Coef0 (for poly, sigmoid) {i+1}", -10.0, 10.0, value=0.0, step=0.1, key=f"coef0_{i}", disabled=(kernel not in ["poly", "sigmoid"]))
                 shrinking = st.checkbox(f"Shrinking {i+1}", value=True, key=f"shrinking_{i}")

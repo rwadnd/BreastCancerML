@@ -103,7 +103,7 @@ def main():
         # Selection Mode: Diagnosis-based or Feature-to-Feature
     
 
-        threshold1 = st.slider("Correlation Threshold", 0.3, 1.0, 0.6, 0.05, key="thresh1")
+        threshold1 = st.slider("Correlation Threshold", 0.6, 1.0, 0.7, 0.05, key="thresh1")
         correlation_mode = st.radio(
             "Select Correlation Type",
             ["Correlation with Diagnosis", "Correlation Among Features"],

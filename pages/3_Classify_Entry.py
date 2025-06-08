@@ -17,12 +17,12 @@ from sklearn.tree import DecisionTreeClassifier
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
 
-# Import preprocessing modules for manual application if needed
+# Import preprocessing modules (needed by apply_preprocessing_to_dataframe, but not for direct UI)
 from sklearn.impute import SimpleImputer, KNNImputer
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 from sklearn.feature_selection import SelectKBest, RFE, f_classif
 from sklearn.decomposition import PCA
-from scipy.stats import zscore, mstats
+from scipy.stats import zscore, mstats # For winsorization if it was applied via 2_Compare_Models.py
 from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import RandomUnderSampler
 from collections import Counter
@@ -31,13 +31,15 @@ from collections import Counter
 st.set_page_config(page_title="Classify Custom Entry", layout="wide")
 
 # Helper function to apply preprocessing transformers to a DataFrame
+# This function will use the *fitted* transformers passed from session state
 def apply_preprocessing_to_dataframe(df_input, original_features, fitted_transformers):
     df = df_input.copy()
     
     # Ensure columns match original features before applying transformations
     # This is critical if feature selection/PCA changed the number of columns
-    # For a new single input row, we assume it has all original features
-    df = df[original_features]
+    # For a new single input row, we assume it has all original features from data_source
+    df = df[original_features].copy()
+
 
     # Apply Imputation (if imputer was fitted)
     if 'imputer' in fitted_transformers and fitted_transformers['imputer'] is not None:
@@ -70,14 +72,14 @@ def main():
     # Define a list of default model types for each of the 9 slots
     default_model_types = [
         "Logistic Regression",
-        "Gradient Boosting",
-        "Decision Tree",
         "Random Forest",
-        "XGBoost",
-        "LightGBM",
         "SVM",
+        "Gradient Boosting",
         "K-Nearest Neighbors",
-        "Naive Bayes"
+        "Naive Bayes",
+        "Decision Tree",
+        "XGBoost",
+        "LightGBM"
     ]
 
     # Initialize models configuration for this page if not present
@@ -164,58 +166,6 @@ def main():
 
     st.markdown("---")
 
-    # --- Preprocessing Options for Training (Reintroduced) ---
-    st.subheader("⚙️ Preprocessing Options for Training")
-    preprocessing_config = {} # Dictionary to store selected preprocessing options for training
-
-    if st.checkbox("Remove Outliers", key="train_outlier_checkbox"):
-        outlier_method = st.selectbox("Select outlier removal method", ["IQR", "Z-Score", "Winsorization"], key="train_outlier_method")
-        preprocessing_config['outlier_removal'] = outlier_method
-        if outlier_method == "Winsorization":
-            lower_bound = st.slider("Winsorization Lower Bound (quantile)", 0.0, 0.1, value=0.01, step=0.005, key="train_winsor_lower")
-            upper_bound = st.slider("Winsorization Upper Bound (quantile)", 0.9, 1.0, value=0.99, step=0.005, key="train_winsor_upper")
-            preprocessing_config['winsor_bounds'] = (lower_bound, upper_bound)
-
-    if st.checkbox("Handle Missing Values", key="train_missing_checkbox"):
-        missing_counts = data.isnull().sum().sum()
-        if missing_counts == 0:
-            st.success("✅ No missing values found in the dataset.")
-        else:
-            missing_method = st.selectbox("Select missing value strategy", ["Mean Imputation", "Median Imputation", "KNN Imputation", "Drop Rows"], key="train_missing_method")
-            preprocessing_config['missing_values'] = missing_method
-            if missing_method == "KNN Imputation":
-                knn_imputer_neighbors = st.slider("KNN Imputer Neighbors", 1, 10, value=5, key="train_knn_impute_n")
-                preprocessing_config['knn_imputer_neighbors'] = knn_imputer_neighbors
-
-    if st.checkbox("Apply Feature Scaling", key="train_scaling_checkbox"):
-        scaler_method = st.selectbox("Select scaler", ["Min-Max Scaler", "Standard Scaler", "Robust Scaler"], key="train_scaling_method")
-        preprocessing_config['scaling'] = scaler_method
-
-    if st.checkbox("Apply Feature Selection/Reduction", key="train_feature_selection_checkbox"):
-        selection_method = st.selectbox("Select feature selection/reduction method", ["SelectKBest", "RFE", "PCA"], key="train_feature_selection_method")
-        preprocessing_config['feature_selection'] = selection_method
-        num_features_in_data = len(features_for_input) # Use the count of actual features
-        if selection_method in ["SelectKBest", "RFE"]:
-            default_k = min(10, num_features_in_data)
-            k_features = st.slider(f"Number of features (k) for {selection_method}", 1, num_features_in_data, value=default_k, key=f"train_k_features_{selection_method}")
-            preprocessing_config['k_features'] = k_features
-        elif selection_method == "PCA":
-            default_components = min(5, num_features_in_data)
-            n_components = st.slider("Number of components for PCA", 1, num_features_in_data, value=default_components, key="train_pca_components")
-            preprocessing_config['pca_components'] = n_components
-
-    if st.checkbox("Handle Class Imbalance", key="train_imbalance_checkbox"):
-        if 'diagnosis' in data.columns:
-            target_counts = data['diagnosis'].value_counts()
-            st.write(f"Class distribution before handling: {dict(target_counts)}")
-            imbalance_method = st.selectbox("Select imbalance handling method", ["None", "Oversampling (SMOTE)", "Undersampling (Random)"], key="train_imbalance_method")
-            if imbalance_method != "None":
-                preprocessing_config['imbalance_handling'] = imbalance_method
-        else:
-            st.warning("Target column 'diagnosis' not found for imbalance handling.")
-
-    st.markdown("---")
-
     # --- Model Configuration Grid ---
     st.subheader("📊 Configure Models")
 
@@ -247,11 +197,11 @@ def main():
 
                     # Conditional parameter inputs based on selected model type
                     if model_type == "Logistic Regression":
-                        C = st.select_slider(f"C {idx+1}", options=[0.01, 0.1, 1, 10, 100], value=1, key=f"C_slot_{idx}")
-                        penalty = st.selectbox(f"Penalty {idx+1}", ["l2", "l1", "elasticnet", "none"], key=f"penalty_slot_{idx}")
-                        solver = st.selectbox(f"Solver {idx+1}", ["lbfgs", "liblinear", "saga"], key=f"solver_slot_{idx}")
-                        fit_intercept = st.checkbox(f"Fit Intercept {idx+1}", value=True, key=f"fit_int_slot_{idx}")
-                        class_weight = st.selectbox(f"Class Weight {idx+1}", [None, "balanced"], key=f"lw_slot_{idx}")
+                        C = st.select_slider(f"C ", options=[0.01, 0.1, 1, 10, 100], value=1, key=f"C_slot_{idx}")
+                        penalty = st.selectbox(f"Penalty ", ["l2", "l1", "elasticnet", "none"], key=f"penalty_slot_{idx}")
+                        solver = st.selectbox(f"Solver ", ["lbfgs", "liblinear", "saga"], key=f"solver_slot_{idx}")
+                        fit_intercept = st.checkbox(f"Fit Intercept ", value=True, key=f"fit_int_slot_{idx}")
+                        class_weight = st.selectbox(f"Class Weight ", [None, "balanced"], key=f"lw_slot_{idx}")
                         model_params = {"C": C, "penalty": penalty, "solver": solver, "max_iter": 1000, "fit_intercept": fit_intercept, "class_weight": class_weight}
                         if penalty == 'l1' and solver not in ['liblinear', 'saga']:
                             st.warning("L1 penalty requires 'liblinear' or 'saga' solver for Logistic Regression.")
@@ -261,68 +211,68 @@ def main():
                             st.warning("'None' penalty requires 'lbfgs' or 'saga' solver for Logistic Regression.")
 
                     elif model_type == "Random Forest":
-                        n_estimators = st.slider(f"Trees {idx+1}", 10, 200, step=10, value=100, key=f"n_slot_{idx}")
-                        max_depth = st.selectbox(f"Max Depth {idx+1}", [None, 5, 10, 20, 30], key=f"depth_slot_{idx}")
-                        criterion = st.selectbox(f"Criterion {idx+1}", ["gini", "entropy", "log_loss"], key=f"crit_slot_{idx}")
-                        min_samples_split = st.slider(f"Min Samples Split {idx+1}", 2, 20, value=2, key=f"min_split_slot_{idx}")
-                        min_samples_leaf = st.slider(f"Min Samples Leaf {idx+1}", 1, 20, value=1, key=f"min_leaf_slot_{idx}")
-                        max_features = st.selectbox(f"Max Features {idx+1}", ["sqrt", "log2", None], key=f"max_feat_slot_{idx}")
-                        bootstrap = st.checkbox(f"Bootstrap {idx+1}", value=True, key=f"bootstrap_slot_{idx}")
+                        n_estimators = st.slider(f"Trees ", 10, 200, step=10, value=100, key=f"n_slot_{idx}")
+                        max_depth = st.selectbox(f"Max Depth ", [None, 5, 10, 20, 30], key=f"depth_slot_{idx}")
+                        criterion = st.selectbox(f"Criterion ", ["gini", "entropy", "log_loss"], key=f"crit_slot_{idx}")
+                        min_samples_split = st.slider(f"Min Samples Split ", 2, 20, value=2, key=f"min_split_slot_{idx}")
+                        min_samples_leaf = st.slider(f"Min Samples Leaf ", 1, 20, value=1, key=f"min_leaf_slot_{idx}")
+                        max_features = st.selectbox(f"Max Features ", ["sqrt", "log2", None], key=f"max_feat_slot_{idx}")
+                        bootstrap = st.checkbox(f"Bootstrap ", value=True, key=f"bootstrap_slot_{idx}")
                         model_params = {"n_estimators": n_estimators, "max_depth": max_depth, "criterion": criterion,
                                         "min_samples_split": min_samples_split, "min_samples_leaf": min_samples_leaf,
                                         "max_features": max_features, "bootstrap": bootstrap, "random_state": 42}
 
                     elif model_type == "SVM":
-                        C = st.select_slider(f"SVM C {idx+1}", options=[0.1, 1, 10, 100, 1000], value=1, key=f"svmC_slot_{idx}")
-                        kernel = st.selectbox(f"Kernel {idx+1}", ["linear", "rbf", "poly", "sigmoid"], key=f"kernel_slot_{idx}")
-                        gamma = st.selectbox(f"Gamma {idx+1}", ["scale", "auto"], key=f"gamma_slot_{idx}")
-                        degree = st.slider(f"Degree (for poly) {idx+1}", 2, 5, value=3, key=f"degree_slot_{idx}", disabled=(kernel != "poly"))
-                        coef0 = st.slider(f"Coef0 (for poly, sigmoid) {idx+1}", -10.0, 10.0, value=0.0, step=0.1, key=f"coef0_slot_{idx}", disabled=(kernel not in ["poly", "sigmoid"]))
-                        shrinking = st.checkbox(f"Shrinking {idx+1}", value=True, key=f"shrinking_slot_{idx}")
+                        C = st.select_slider(f"SVM C ", options=[0.1, 1, 10, 100, 1000], value=1, key=f"svmC_slot_{idx}")
+                        kernel = st.selectbox(f"Kernel ", ["linear", "rbf", "poly", "sigmoid"], key=f"kernel_slot_{idx}")
+                        gamma = st.selectbox(f"Gamma ", ["auto","scale"], key=f"gamma_slot_{idx}")
+                        degree = st.slider(f"Degree (for poly) ", 2, 5, value=3, key=f"degree_slot_{idx}", disabled=(kernel != "poly"))
+                        coef0 = st.slider(f"Coef0 (for poly, sigmoid) ", -10.0, 10.0, value=0.0, step=0.1, key=f"coef0_slot_{idx}", disabled=(kernel not in ["poly", "sigmoid"]))
+                        shrinking = st.checkbox(f"Shrinking ", value=True, key=f"shrinking_slot_{idx}")
                         model_params = {"C": C, "kernel": kernel, "gamma": gamma, "degree": degree, "coef0": coef0, "shrinking": shrinking}
 
                     elif model_type == "Gradient Boosting":
-                        n_estimators = st.slider(f"GB Trees {idx+1}", 50, 300, step=50, value=100, key=f"gb_n_slot_{idx}")
-                        learning_rate = st.select_slider(f"GB Learning Rate {idx+1}", options=[0.01, 0.05, 0.1, 0.2], value=0.1, key=f"gb_lr_slot_{idx}")
-                        max_depth = st.selectbox(f"GB Max Depth {idx+1}", [3, 5, 8, None], key=f"gb_depth_slot_{idx}")
-                        subsample = st.select_slider(f"GB Subsample {idx+1}", options=[0.7, 0.8, 0.9, 1.0], value=1.0, key=f"gb_subsample_slot_{idx}")
+                        n_estimators = st.slider(f"GB Trees ", 50, 300, step=50, value=100, key=f"gb_n_slot_{idx}")
+                        learning_rate = st.select_slider(f"GB Learning Rate ", options=[0.01, 0.05, 0.1, 0.2], value=0.1, key=f"gb_lr_slot_{idx}")
+                        max_depth = st.selectbox(f"GB Max Depth ", [3, 5, 8, None], key=f"gb_depth_slot_{idx}")
+                        subsample = st.select_slider(f"GB Subsample ", options=[0.7, 0.8, 0.9, 1.0], value=1.0, key=f"gb_subsample_slot_{idx}")
                         model_params = {"n_estimators": n_estimators, "learning_rate": learning_rate, "max_depth": max_depth, "subsample": subsample, "random_state": 42}
 
                     elif model_type == "K-Nearest Neighbors":
-                        n_neighbors = st.slider(f"KNN Neighbors {idx+1}", 1, 20, value=5, key=f"knn_n_slot_{idx}")
-                        weights = st.selectbox(f"KNN Weights {idx+1}", ["uniform", "distance"], key=f"knn_weights_slot_{idx}")
-                        algorithm = st.selectbox(f"KNN Algorithm {idx+1}", ["auto", "ball_tree", "kd_tree", "brute"], key=f"knn_algo_slot_{idx}")
+                        n_neighbors = st.slider(f"KNN Neighbors ", 1, 20, value=5, key=f"knn_n_slot_{idx}")
+                        weights = st.selectbox(f"KNN Weights ", ["uniform", "distance"], key=f"knn_weights_slot_{idx}")
+                        algorithm = st.selectbox(f"KNN Algorithm ", ["auto", "ball_tree", "kd_tree", "brute"], key=f"knn_algo_slot_{idx}")
                         model_params = {"n_neighbors": n_neighbors, "weights": weights, "algorithm": algorithm}
 
                     elif model_type == "Naive Bayes":
-                        var_smoothing = st.select_slider(f"NB Var Smoothing {idx+1}", options=[1e-10, 1e-9, 1e-8, 1e-7], value=1e-9, key=f"nb_smooth_slot_{idx}")
+                        var_smoothing = st.select_slider(f"NB Var Smoothing ", options=[1e-10, 1e-9, 1e-8, 1e-7], value=1e-9, key=f"nb_smooth_slot_{idx}")
                         model_params = {"var_smoothing": var_smoothing}
 
                     elif model_type == "Decision Tree":
-                        max_depth = st.selectbox(f"DT Max Depth {idx+1}", [None, 5, 10, 20, 30], key=f"dt_depth_slot_{idx}")
-                        min_samples_split = st.slider(f"Min Samples Split {idx+1}", 2, 20, value=2, key=f"min_split_slot_{idx}")
-                        min_samples_leaf = st.slider(f"Min Samples Leaf {idx+1}", 1, 20, value=1, key=f"min_leaf_slot_{idx}")
-                        criterion = st.selectbox(f"Criterion {idx+1}", ["gini", "entropy", "log_loss"], key=f"dt_crit_slot_{idx}")
+                        max_depth = st.selectbox(f"DT Max Depth ", [None, 5, 10, 20, 30], key=f"dt_depth_slot_{idx}")
+                        min_samples_split = st.slider(f"Min Samples Split ", 2, 20, value=2, key=f"min_split_slot_{idx}")
+                        min_samples_leaf = st.slider(f"Min Samples Leaf ", 1, 20, value=1, key=f"min_leaf_slot_{idx}")
+                        criterion = st.selectbox(f"Criterion ", ["gini", "entropy", "log_loss"], key=f"dt_crit_slot_{idx}")
                         model_params = {"max_depth": max_depth, "min_samples_split": min_samples_split, "min_samples_leaf": min_samples_leaf, "criterion": criterion, "random_state": 42}
 
                     elif model_type == "XGBoost":
-                        n_estimators = st.slider(f"XGB Trees {idx+1}", 50, 300, step=50, value=100, key=f"xgb_n_slot_{idx}")
-                        learning_rate = st.select_slider(f"XGB Learning Rate {idx+1}", options=[0.01, 0.05, 0.1, 0.2], value=0.1, key=f"xgb_lr_slot_{idx}")
-                        max_depth = st.slider(f"XGB Max Depth {idx+1}", 3, 10, value=6, key=f"xgb_depth_slot_{idx}")
-                        subsample = st.select_slider(f"XGB Subsample {idx+1}", options=[0.6, 0.7, 0.8, 0.9, 1.0], value=1.0, key=f"xgb_subsample_slot_{idx}")
-                        colsample_bytree = st.select_slider(f"XGB Colsample {idx+1}", options=[0.6, 0.7, 0.8, 0.9, 1.0], value=1.0, key=f"xgb_colsample_slot_{idx}")
-                        gamma = st.select_slider(f"XGB Gamma {idx+1}", options=[0, 0.1, 0.2, 0.4], value=0, key=f"xgb_gamma_slot_{idx}")
+                        n_estimators = st.slider(f"XGB Trees ", 50, 300, step=50, value=100, key=f"xgb_n_slot_{idx}")
+                        learning_rate = st.select_slider(f"XGB Learning Rate ", options=[0.01, 0.05, 0.1, 0.2], value=0.1, key=f"xgb_lr_slot_{idx}")
+                        max_depth = st.slider(f"XGB Max Depth ", 3, 10, value=6, key=f"xgb_depth_slot_{idx}")
+                        subsample = st.select_slider(f"XGB Subsample ", options=[0.6, 0.7, 0.8, 0.9, 1.0], value=1.0, key=f"xgb_subsample_slot_{idx}")
+                        colsample_bytree = st.select_slider(f"XGB Colsample ", options=[0.6, 0.7, 0.8, 0.9, 1.0], value=1.0, key=f"xgb_colsample_slot_{idx}")
+                        gamma = st.select_slider(f"XGB Gamma ", options=[0, 0.1, 0.2, 0.4], value=0, key=f"xgb_gamma_slot_{idx}")
                         model_params = {"n_estimators": n_estimators, "learning_rate": learning_rate, "max_depth": max_depth,
                                         "subsample": subsample, "colsample_bytree": colsample_bytree, "gamma": gamma,
                                         "use_label_encoder": False, "eval_metric": "logloss", "random_state": 42}
 
                     elif model_type == "LightGBM":
-                        n_estimators = st.slider(f"LGBM Trees {idx+1}", 50, 300, step=50, value=100, key=f"lgbm_n_slot_{idx}")
-                        learning_rate = st.select_slider(f"LGBM Learning Rate {idx+1}", options=[0.01, 0.05, 0.1, 0.2], value=0.1, key=f"lgbm_lr_slot_{idx}")
-                        num_leaves = st.slider(f"LGBM Num Leaves {idx+1}", 20, 60, value=31, key=f"lgbm_leaves_slot_{idx}")
-                        max_depth = st.slider(f"LGBM Max Depth {idx+1}", -1, 10, value=-1, key=f"lgbm_depth_slot_{idx}")
-                        reg_alpha = st.select_slider(f"LGBM L1 Reg {idx+1}", options=[0, 0.1, 0.5, 1], value=0, key=f"lgbm_reg_a_slot_{idx}")
-                        reg_lambda = st.select_slider(f"LGBM L2 Reg {idx+1}", options=[0, 0.1, 0.5, 1], value=0, key=f"lgbm_reg_l_slot_{idx}")
+                        n_estimators = st.slider(f"LGBM Trees ", 50, 300, step=50, value=100, key=f"lgbm_n_slot_{idx}")
+                        learning_rate = st.select_slider(f"LGBM Learning Rate ", options=[0.01, 0.05, 0.1, 0.2], value=0.1, key=f"lgbm_lr_slot_{idx}")
+                        num_leaves = st.slider(f"LGBM Num Leaves ", 20, 60, value=31, key=f"lgbm_leaves_slot_{idx}")
+                        max_depth = st.slider(f"LGBM Max Depth ", -1, 10, value=-1, key=f"lgbm_depth_slot_{idx}")
+                        reg_alpha = st.select_slider(f"LGBM L1 Reg ", options=[0, 0.1, 0.5, 1], value=0, key=f"lgbm_reg_a_slot_{idx}")
+                        reg_lambda = st.select_slider(f"LGBM L2 Reg ", options=[0, 0.1, 0.5, 1], value=0, key=f"lgbm_reg_l_slot_{idx}")
                         model_params = {"n_estimators": n_estimators, "learning_rate": learning_rate, "num_leaves": num_leaves,
                                         "max_depth": max_depth, "reg_alpha": reg_alpha, "reg_lambda": reg_lambda,
                                         "random_state": 42}
@@ -346,6 +296,7 @@ def main():
         # Determine if the train button should be disabled
         train_button_disabled = False 
         if data_source_option == "Preprocessed Data":
+            # The button is disabled if preprocessed data is selected AND it's not available/empty
             if "preprocessed_X" not in st.session_state or st.session_state.preprocessed_X is None or st.session_state.preprocessed_X.empty:
                 st.warning("Preprocessed data not found or is empty. Please run 'Compare Models' page first with preprocessing options selected.")
                 train_button_disabled = True # Disable if data is missing or empty
@@ -354,7 +305,7 @@ def main():
         
         st.markdown("---")
         st.subheader("Action")
-        # The button is always rendered, its disabled state is controlled by the variable
+        # Ensure the button is always rendered, controlling visibility via disabled state
         train_and_classify_button = st.button("🏁 Train All Models & Classify Custom Entry", disabled=train_button_disabled)
 
     # --- Training and Prediction Logic (triggered by the single button) ---
@@ -366,97 +317,109 @@ def main():
             X_train_data_raw = data.drop(columns=["id", "diagnosis", "Unnamed: 32"], errors='ignore')
             y_train_target = data["diagnosis"]
 
+            # Initialize variables to be used in the loop
+            X_data_for_model_training = None
+            y_data_for_model_training = None
+            data_source_type_for_model_storage = data_source_option.lower().replace(" ", "_") # 'original_data' or 'preprocessed_data'
+            fitted_transformers_for_model_storage = {} # This will store locally fitted transformers if 'Preprocessed Data' is chosen and preprocessing is applied here
+
             if data_source_option == "Original Data":
-                X_train_data = X_train_data_raw.copy()
-                data_source_type_for_model = 'original'
-                fitted_transformers_for_model = {} # No transformers needed for original data
-            else: # Preprocessed Data
-                # Apply preprocessing steps to the training data here
+                X_data_for_model_training = X_train_data_raw.copy()
+                y_data_for_model_training = y_train_target.copy()
+            else: # Preprocessed Data selected. This branch will now apply preprocessing locally
+                # Ensure preprocessing_config is available (from previous steps if not set explicitly on this page)
+                # If you want to configure preprocessing on this page, the options would be here.
+                # Since you want to use the output from Compare Models, we assume that config is saved globally.
+                if "preprocessing_config_applied" not in st.session_state or not st.session_state.preprocessing_config_applied:
+                    st.error("Preprocessed data is selected but no preprocessing configuration found from 'Compare Models' page. Cannot apply transformations.")
+                    st.session_state.classify_now = False
+                    return # Stop execution
+
+                # Re-apply preprocessing logic to X_train_data_raw to get X_data_for_model_training
+                # and capture the fitted transformers here.
                 X_processed_for_training = X_train_data_raw.copy()
                 y_processed_for_training = y_train_target.copy()
                 
-                current_fitted_transformers = {} # Transformers fitted during this training run
+                # Retrieve the config from the "Compare Models" page
+                preprocessing_config_from_compare = st.session_state.preprocessing_config_applied
 
+                # Manually apply preprocessing steps to X_processed_for_training and capture fitted transformers
                 # Outlier Removal (applied directly as it changes sample size)
-                if 'outlier_removal' in preprocessing_config:
-                    if preprocessing_config['outlier_removal'] == "IQR":
+                if 'outlier_removal' in preprocessing_config_from_compare:
+                    if preprocessing_config_from_compare['outlier_removal'] == "IQR":
                         Q1 = X_processed_for_training.quantile(0.25)
                         Q3 = X_processed_for_training.quantile(0.75)
                         IQR = Q3 - Q1
                         mask = ~((X_processed_for_training < (Q1 - 1.5 * IQR)) | (X_processed_for_training > (Q3 + 1.5 * IQR))).any(axis=1)
                         X_processed_for_training, y_processed_for_training = X_processed_for_training[mask], y_processed_for_training[mask]
-                    elif preprocessing_config['outlier_removal'] == "Z-Score":
+                    elif preprocessing_config_from_compare['outlier_removal'] == "Z-Score":
                         numeric_cols = X_processed_for_training.select_dtypes(include=np.number).columns
                         z_scores = np.abs(zscore(X_processed_for_training[numeric_cols]))
                         mask = (z_scores < 3).all(axis=1)
                         X_processed_for_training, y_processed_for_training = X_processed_for_training[mask], y_processed_for_training[mask]
-                    elif preprocessing_config['outlier_removal'] == "Winsorization":
-                        lower_bound, upper_bound = preprocessing_config['winsor_bounds']
+                    elif preprocessing_config_from_compare['outlier_removal'] == "Winsorization":
+                        lower_bound, upper_bound = preprocessing_config_from_compare['winsor_bounds']
                         X_processed_for_training = X_processed_for_training.apply(lambda col: mstats.winsorize(col, limits=(lower_bound, 1 - upper_bound)), axis=0)
                         X_processed_for_training = pd.DataFrame(X_processed_for_training, columns=X_train_data_raw.columns)
 
                 # Missing Value Imputation
-                if 'missing_values' in preprocessing_config:
-                    if preprocessing_config['missing_values'] == "Drop Rows":
+                if 'missing_values' in preprocessing_config_from_compare:
+                    if preprocessing_config_from_compare['missing_values'] == "Drop Rows":
                         combined_df = pd.concat([X_processed_for_training, y_processed_for_training], axis=1)
                         combined_df.dropna(inplace=True)
                         X_processed_for_training = combined_df.drop(columns=["diagnosis"])
                         y_processed_for_training = combined_df["diagnosis"]
-                    elif preprocessing_config['missing_values'] == "KNN Imputation":
-                        imputer = KNNImputer(n_neighbors=preprocessing_config['knn_imputer_neighbors'])
+                    elif preprocessing_config_from_compare['missing_values'] == "KNN Imputation":
+                        imputer = KNNImputer(n_neighbors=preprocessing_config_from_compare['knn_imputer_neighbors'])
                         X_processed_for_training = pd.DataFrame(imputer.fit_transform(X_processed_for_training), columns=X_processed_for_training.columns)
-                        current_fitted_transformers['imputer'] = imputer
+                        fitted_transformers_for_model_storage['imputer'] = imputer
                     else: # Mean/Median Imputation
-                        strategy = "mean" if preprocessing_config['missing_values'] == "Mean Imputation" else "median"
+                        strategy = "mean" if preprocessing_config_from_compare['missing_values'] == "Mean Imputation" else "median"
                         imputer = SimpleImputer(strategy=strategy)
                         X_processed_for_training = pd.DataFrame(imputer.fit_transform(X_processed_for_training), columns=X_processed_for_training.columns)
-                        current_fitted_transformers['imputer'] = imputer
+                        fitted_transformers_for_model_storage['imputer'] = imputer
 
                 # Feature Scaling
-                if 'scaling' in preprocessing_config:
-                    if preprocessing_config['scaling'] == "Standard Scaler":
+                if 'scaling' in preprocessing_config_from_compare:
+                    if preprocessing_config_from_compare['scaling'] == "Standard Scaler":
                         scaler = StandardScaler()
-                    elif preprocessing_config['scaling'] == "Min-Max Scaler":
+                    elif preprocessing_config_from_compare['scaling'] == "Min-Max Scaler":
                         scaler = MinMaxScaler()
-                    elif preprocessing_config['scaling'] == "Robust Scaler":
+                    elif preprocessing_config_from_compare['scaling'] == "Robust Scaler":
                         scaler = RobustScaler()
                     X_processed_for_training = pd.DataFrame(scaler.fit_transform(X_processed_for_training), columns=X_processed_for_training.columns)
-                    current_fitted_transformers['scaler'] = scaler
+                    fitted_transformers_for_model_storage['scaler'] = scaler
 
                 # Feature Selection/Reduction
-                if 'feature_selection' in preprocessing_config:
-                    if preprocessing_config['feature_selection'] == "SelectKBest":
-                        selector = SelectKBest(score_func=f_classif, k=preprocessing_config['k_features'])
+                if 'feature_selection' in preprocessing_config_from_compare:
+                    if preprocessing_config_from_compare['feature_selection'] == "SelectKBest":
+                        selector = SelectKBest(score_func=f_classif, k=preprocessing_config_from_compare['k_features'])
                         X_transformed = selector.fit_transform(X_processed_for_training, y_processed_for_training)
                         X_processed_for_training = pd.DataFrame(X_transformed, columns=selector.get_feature_names_out(X_processed_for_training.columns))
-                        current_fitted_transformers['feature_selector'] = selector
-                    elif preprocessing_config['feature_selection'] == "RFE":
+                        fitted_transformers_for_model_storage['feature_selector'] = selector
+                    elif preprocessing_config_from_compare['feature_selection'] == "RFE":
                         base_model_rfe = LogisticRegression(max_iter=1000)
-                        selector = RFE(base_model_rfe, n_features_to_select=preprocessing_config['k_features'])
+                        selector = RFE(base_model_rfe, n_features_to_select=preprocessing_config_from_compare['k_features'])
                         X_transformed = selector.fit_transform(X_processed_for_training, y_processed_for_training)
                         X_processed_for_training = pd.DataFrame(X_transformed, columns=selector.get_feature_names_out(X_processed_for_training.columns))
-                        current_fitted_transformers['feature_selector'] = selector
-                    elif preprocessing_config['feature_selection'] == "PCA":
-                        pca = PCA(n_components=preprocessing_config['pca_components'])
+                        fitted_transformers_for_model_storage['feature_selector'] = selector
+                    elif preprocessing_config_from_compare['feature_selection'] == "PCA":
+                        pca = PCA(n_components=preprocessing_config_from_compare['pca_components'])
                         X_transformed = pca.fit_transform(X_processed_for_training)
                         X_processed_for_training = pd.DataFrame(X_transformed, columns=[f'PC_{j+1}' for j in range(pca.n_components_)])
-                        current_fitted_transformers['pca'] = pca
+                        fitted_transformers_for_model_storage['pca'] = pca
 
                 # Handle Class Imbalance
-                if 'imbalance_handling' in preprocessing_config and preprocessing_config['imbalance_handling'] != "None":
-                    # st.write(f"Class distribution before imbalance handling: {Counter(y_processed_for_training)}") # Removed verbose feedback
-                    if preprocessing_config['imbalance_handling'] == "Oversampling (SMOTE)":
+                if 'imbalance_handling' in preprocessing_config_from_compare and preprocessing_config_from_compare['imbalance_handling'] != "None":
+                    if preprocessing_config_from_compare['imbalance_handling'] == "Oversampling (SMOTE)":
                         oversampler = SMOTE(random_state=42)
                         X_processed_for_training, y_processed_for_training = oversampler.fit_resample(X_processed_for_training, y_processed_for_training)
-                    elif preprocessing_config['imbalance_handling'] == "Undersampling (Random)":
+                    elif preprocessing_config_from_compare['imbalance_handling'] == "Undersampling (Random)":
                         undersampler = RandomUnderSampler(random_state=42)
                         X_processed_for_training, y_processed_for_training = undersampler.fit_resample(X_processed_for_training, y_processed_for_training)
-                    # st.write(f"Class distribution after imbalance handling: {Counter(y_processed_for_training)}") # Removed verbose feedback
                 
-                X_train_data = X_processed_for_training
-                y_train_target = y_processed_for_training
-                data_source_type_for_model = 'preprocessed'
-                fitted_transformers_for_model = current_fitted_transformers
+                X_data_for_model_training = X_processed_for_training
+                y_data_for_model_training = y_processed_for_training
 
 
             # Loop through each model slot to train and classify
@@ -488,18 +451,20 @@ def main():
                 
                 if model is not None:
                     try:
-                        model.fit(X_train_data, y_train_target) # Fit on the selected data
+                        # Use the appropriate data for training based on data_source_option
+                        model.fit(X_data_for_model_training, y_data_for_model_training)
+                        
                         st.session_state.trained_models_custom_entry[f"Model Slot {i+1}: {config['type']}"] = {
                             'model': model,
                             'original_features': features_for_input, # Always store original feature names
                             'model_params': config['params'],
-                            'data_source_type': data_source_type_for_model, # Store which data type was used
-                            'fitted_transformers': fitted_transformers_for_model # Store fitted transformers
+                            'data_source_type': data_source_type_for_model_storage, # Store which data type was used
+                            'fitted_transformers': fitted_transformers_for_model_storage # Store fitted transformers for prediction
                         }
                         
                     except Exception as e:
                         st.error(f"Error training Model Slot {i+1} ({config['type']}): {e}")
-                        st.warning("Please check model parameters and data consistency.")
+                        st.warning("Please check model parameters and data consistency. If using preprocessed data, ensure it's available from 'Compare Models' page.")
                 else:
                     st.error(f"Model {config['type']} could not be instantiated.")
             st.success("All configured models have been trained!")
@@ -529,26 +494,29 @@ def main():
                                 model_for_display = stored_model_info['model']
                                 data_source_type_used = stored_model_info['data_source_type']
                                 
-                                # Prepare input for prediction based on data source type
-                                if data_source_type_used == 'original':
+                                # Prepare input for prediction based on data source type used during training
+                                input_for_prediction_display = None
+                                if data_source_type_used == 'original_data':
                                     input_for_prediction_display = input_df_raw[features_for_input]
-                                else: # 'preprocessed'
-                                    # Apply the same preprocessing steps to the custom input
+                                else: # 'preprocessed_data'
+                                    # Apply the same preprocessing steps to the custom input using stored transformers
                                     fitted_transformers_used = stored_model_info['fitted_transformers']
                                     if fitted_transformers_used:
                                         try:
                                             input_for_prediction_display = apply_preprocessing_to_dataframe(
                                                 input_df_raw,
                                                 stored_model_info['original_features'],
-                                                fitted_transformers_used # Pass fitted transformers
+                                                fitted_transformers_used
                                             )
                                         except Exception as e_prep:
                                             st.error(f"Error preprocessing custom input for {model_type}: {e_prep}")
                                             st.info("Ensure preprocessing steps on 'Compare Models' page were compatible.")
-                                            input_for_prediction_display = None # Indicate failure
+                                            input_for_prediction_display = None
                                     else:
-                                        st.warning(f"No fitted transformers found for {model_type} (trained on preprocessed data). Cannot preprocess custom input.")
-                                        input_for_prediction_display = None
+                                        # If no transformers were fitted, the raw input is used as the preprocessed input
+                                        # This means preprocessing on 2_Compare_Models.py was 'in-place' (e.g., outlier removal, resampling, dropping rows)
+                                        # and didn't generate any fit-transform objects.
+                                        input_for_prediction_display = input_df_raw[features_for_input]
 
                                 # Perform prediction if input is ready
                                 if input_for_prediction_display is not None:
