@@ -1,2 +1,0 @@
-Show data analysis for each part of the data (mean, se, worst)
-select the model and the preprocessing steps to compare the results
