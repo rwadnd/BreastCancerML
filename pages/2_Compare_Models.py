@@ -48,7 +48,7 @@ def main():
         data = st.session_state.data
         st.write("Data is loaded from Kaggle Hub. Shape:", data.shape)
     else:
-        st.warning("Data not found. Please return to the main page to load it.")
+        st.warning("Data not found. Please return to the \"Intro\" page to load it.")
         return # Exit if data is not loaded
     
     st.title("ML Models")
@@ -234,6 +234,7 @@ def main():
                                 "max_features": max_features, "bootstrap": bootstrap, "random_state": 42}
 
             elif model_type == "SVM":
+                st.warning("SVM models can take long time to train.")
                 C = st.select_slider(f"SVM C ", options=[0.1, 1, 10, 100, 1000], value=1, key=f"svmC_{i}")
                 kernel = st.selectbox(f"Kernel ", ["linear", "rbf", "poly", "sigmoid"], key=f"kernel_{i}")
                 gamma = st.selectbox(f"Gamma ", ["auto", "scale"], key=f"gamma_{i}")
@@ -241,6 +242,7 @@ def main():
                 coef0 = st.slider(f"Coef0 (for poly, sigmoid) ", -10.0, 10.0, value=0.0, step=0.1, key=f"coef0_{i}", disabled=(kernel not in ["poly", "sigmoid"]))
                 shrinking = st.checkbox(f"Shrinking ", value=True, key=f"shrinking_{i}")
                 model_params = {"C": C, "kernel": kernel, "gamma": gamma, "degree": degree, "coef0": coef0, "shrinking": shrinking}
+               
 
             elif model_type == "Gradient Boosting":
                 n_estimators = st.slider(f"GB Trees ", 50, 300, step=50, value=100, key=f"gb_n_{i}")

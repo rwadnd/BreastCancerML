@@ -21,7 +21,7 @@ def main():
         data = st.session_state.data
         st.write("Data is loaded from Kaggle Hub. Shape:", data.shape)
     else:
-        st.warning("Data not found. Please return to the main page to load it.")
+        st.warning("Data not found. Please return to the \"Intro\" page to load it.")
         return # Exit if data is not loaded
 
     # Feature Grouping
