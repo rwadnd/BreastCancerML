@@ -82,7 +82,7 @@ def main():
         train_button_disabled = False 
         if data_source_option == "Preprocessed Data":
             if "preprocessed_X" not in st.session_state or st.session_state.preprocessed_X is None or st.session_state.preprocessed_X.empty:
-                st.warning("Preprocessed data not found or is empty. Please run 'Compare Models' page first with preprocessing options selected.")
+                st.warning("Preprocessed data not found or is empty. Please select at least one preprocessing step from the \" ML Models\" page")
                 train_button_disabled = True # Disable if data is missing or empty
             else:
                 st.info(f"Preprocessed Data Shape: {st.session_state.preprocessed_X.shape}") # Display shape here

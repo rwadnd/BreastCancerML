@@ -235,7 +235,7 @@ def main():
 
             elif model_type == "SVM":
                 st.warning("If you are on the cloud, SVM models can take long time to train.")
-                C = st.select_slider(f"SVM C ", options=[0.1, 1, 10, 100, 1000], value=1, key=f"svmC_{i}")
+                C = st.select_slider(f"SVM C ", options=[0.1, 0.5, 1, 50, 500], value=0.1, key=f"svmC_{i}")
                 kernel = st.selectbox(f"Kernel ", ["linear", "rbf", "poly", "sigmoid"], key=f"kernel_{i}")
                 gamma = st.selectbox(f"Gamma ", ["auto", "scale"], key=f"gamma_{i}")
                 degree = st.slider(f"Degree (for poly) ", 2, 5, value=3, key=f"degree_{i}", disabled=(kernel != "poly"))
@@ -281,7 +281,6 @@ def main():
                                 "use_label_encoder": False, "eval_metric": "logloss", "random_state": 42}
 
             elif model_type == "LightGBM":
-                st.warning("If you are on the cloud, LightGBM models can take long time to train.")
                 n_estimators = st.slider(f"LGBM Trees ", 50, 300, step=50, value=100, key=f"lgbm_n_{i}")
                 learning_rate = st.select_slider(f"LGBM Learning Rate ", options=[0.01, 0.05, 0.1, 0.2], value=0.1, key=f"lgbm_lr_{i}")
                 num_leaves = st.slider(f"LGBM Num Leaves ", 20, 60, value=31, key=f"lgbm_leaves_{i}")
@@ -348,8 +347,8 @@ def main():
                 with col3:
                     if not isinstance(X_processed, pd.DataFrame): X_for_cv = np.array(X_processed)
                     else: X_for_cv = X_processed
-                    cv_score = cross_val_score(model, X_for_cv, y_processed, cv=5, scoring='accuracy')
-                    st.metric(label="CV Accuracy (5-fold)", value=f"{cv_score.mean():.3f}", delta=f"± {cv_score.std():.3f}")
+                    cv_score = cross_val_score(model, X_for_cv, y_processed, cv=3, scoring='accuracy')
+                    st.metric(label="CV Accuracy (3-fold)", value=f"{cv_score.mean():.3f}", delta=f"± {cv_score.std():.3f}")
 
 if __name__ == "__main__":
     main()

@@ -231,12 +231,12 @@ def main():
 
                     elif model_type == "SVM":
                         st.warning("If you are on the cloud, SVM models can take long time to train.")
-                        C = st.select_slider(f"SVM C ", options=[0.1, 1, 10, 100, 1000], value=1, key=f"svmC_slot_{idx}")
-                        kernel = st.selectbox(f"Kernel ", ["linear", "rbf", "poly", "sigmoid"], key=f"kernel_slot_{idx}")
-                        gamma = st.selectbox(f"Gamma ", ["auto","scale"], key=f"gamma_slot_{idx}")
-                        degree = st.slider(f"Degree (for poly) ", 2, 5, value=3, key=f"degree_slot_{idx}", disabled=(kernel != "poly"))
-                        coef0 = st.slider(f"Coef0 (for poly, sigmoid) ", -10.0, 10.0, value=0.0, step=0.1, key=f"coef0_slot_{idx}", disabled=(kernel not in ["poly", "sigmoid"]))
-                        shrinking = st.checkbox(f"Shrinking ", value=True, key=f"shrinking_slot_{idx}")
+                        C = st.select_slider(f"SVM C ", options=[0.1, 0.5, 1, 50, 500], value=0.1, key=f"svmC_{idx}")
+                        kernel = st.selectbox(f"Kernel ", ["linear", "rbf", "poly", "sigmoid"], key=f"kernel_{idx}")
+                        gamma = st.selectbox(f"Gamma ", ["auto", "scale"], key=f"gamma_{idx}")
+                        degree = st.slider(f"Degree (for poly) ", 2, 5, value=3, key=f"degree_{idx}", disabled=(kernel != "poly"))
+                        coef0 = st.slider(f"Coef0 (for poly, sigmoid) ", -10.0, 10.0, value=0.0, step=0.1, key=f"coef0_{idx}", disabled=(kernel not in ["poly", "sigmoid"]))
+                        shrinking = st.checkbox(f"Shrinking ", value=True, key=f"shrinking_{idx}")
                         model_params = {"C": C, "kernel": kernel, "gamma": gamma, "degree": degree, "coef0": coef0, "shrinking": shrinking}
 
                     elif model_type == "Gradient Boosting":
@@ -276,7 +276,6 @@ def main():
                                         "use_label_encoder": False, "eval_metric": "logloss", "random_state": 42}
 
                     elif model_type == "LightGBM":
-                        st.warning("If you are on the cloud, LightGBM models can take long time to train.")
                         n_estimators = st.slider(f"LGBM Trees ", 50, 300, step=50, value=100, key=f"lgbm_n_slot_{idx}")
                         learning_rate = st.select_slider(f"LGBM Learning Rate ", options=[0.01, 0.05, 0.1, 0.2], value=0.1, key=f"lgbm_lr_slot_{idx}")
                         num_leaves = st.slider(f"LGBM Num Leaves ", 20, 60, value=31, key=f"lgbm_leaves_slot_{idx}")
@@ -310,7 +309,7 @@ def main():
         if data_source_option == "Preprocessed Data":
             # The button is disabled if preprocessed data is selected AND it's not available/empty
             if "preprocessed_X" not in st.session_state or st.session_state.preprocessed_X is None or st.session_state.preprocessed_X.empty:
-                st.warning("Preprocessed data not found or is empty. Please run 'Compare Models' page first with preprocessing options selected.")
+                st.warning("Preprocessed data not found or is empty. Please select at least one preprocessing step from the \" ML Models\" page")
                 train_button_disabled = True # Disable if data is missing or empty
             else:
                 st.info(f"Preprocessed Data Shape: {st.session_state.preprocessed_X.shape}") # Display shape here
@@ -466,6 +465,7 @@ def main():
                 if model is not None:
                     try:
                         # Use the appropriate data for training based on data_source_option
+                        st.warning(model)
                         model.fit(X_data_for_model_training, y_data_for_model_training)
                         
                         st.session_state.trained_models_custom_entry[f"Model Slot {i+1}: {config['type']}"] = {
