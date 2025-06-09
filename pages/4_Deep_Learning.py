@@ -53,16 +53,17 @@ def apply_preprocessing_to_dataframe_dl(df_input, original_features, fitted_tran
 
 def main():
     Navbar() # Display the navigation bar (assumed to handle general navigation, not page-specific sidebar controls)
-    st.title("🧠 Deep Learning Models")
+    
 
     # Load dataset from session
     if "data" in st.session_state:
         data = st.session_state.data
-        st.write("Data is loaded. Shape:", data.shape)
+        st.write("Data is loaded from Kaggle Hub. Shape:", data.shape)
     else:
         st.warning("Data not found. Please return to the main page to load it.")
         return
-
+    
+    st.title("🧠 Deep Learning Models")
     # Identify feature columns
     features_for_model = [col for col in data.columns if col not in ['id', 'diagnosis', 'Unnamed: 32']]
     X_original = data[features_for_model]
