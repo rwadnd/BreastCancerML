@@ -79,7 +79,8 @@ def main():
         "LightGBM",
         "SVM",
         "K-Nearest Neighbors",
-        "Naive Bayes"
+        "Naive Bayes",
+        "None"
     ]
 
     # Initialize models configuration for this page if not present
@@ -282,6 +283,8 @@ def main():
                         model_params = {"n_estimators": n_estimators, "learning_rate": learning_rate, "num_leaves": num_leaves,
                                         "max_depth": max_depth, "reg_alpha": reg_alpha, "reg_lambda": reg_lambda,
                                         "random_state": 42}
+                        
+                
                     
                     # Store the configured model type and parameters for this slot
                     st.session_state.models_custom_entry[idx] = {"type": model_type, "params": model_params}
@@ -454,6 +457,8 @@ def main():
                     model = XGBClassifier(**config['params'])
                 elif config['type'] == "LightGBM":
                     model = LGBMClassifier(**config['params'])
+                elif config['type'] == "None":
+                    model = None
                 
                 if model is not None:
                     try:
@@ -471,8 +476,7 @@ def main():
                     except Exception as e:
                         st.error(f"Error training Model Slot {i+1} ({config['type']}): {e}")
                         st.warning("Please check model parameters and data consistency. If using preprocessed data, ensure it's available from 'Compare Models' page.")
-                else:
-                    st.error(f"Model {config['type']} could not be instantiated.")
+
             st.success("All configured models have been trained!")
             st.session_state.classify_now = True # Trigger classification display
 
@@ -547,7 +551,7 @@ def main():
                                 else:
                                     st.warning("Prediction skipped due to preprocessing error.")
                             else:
-                                st.info("Model not yet trained.")
+                                st.info("No model selected.")
                                 st.markdown("Prediction: N/A")
                                 st.markdown("Confidence: N/A")
         st.session_state.classify_now = False
