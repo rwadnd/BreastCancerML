@@ -174,14 +174,18 @@ def main():
 
             # Handle Class Imbalance
             if 'imbalance_handling' in preprocessing_config:
-                st.badge(f"Class distribution before imbalance handling: {dict(y_processed.value_counts())}")
+                dist = {label: int(y_processed.value_counts().get(label, 0)) for label in [0, 1]}
+                st.badge(f"Class distribution before imbalance handling: {dist}")
+
                 if preprocessing_config['imbalance_handling'] == "Oversampling (SMOTE)":
                     oversampler = SMOTE(random_state=42)
                     X_processed, y_processed = oversampler.fit_resample(X_processed, y_processed)
                 elif preprocessing_config['imbalance_handling'] == "Undersampling (Random)":
                     undersampler = RandomUnderSampler(random_state=42)
                     X_processed, y_processed = undersampler.fit_resample(X_processed, y_processed)
-                st.badge(f"Class distribution after imbalance handling: {dict(y_processed.value_counts())}")
+
+                dist = {label: int(y_processed.value_counts().get(label, 0)) for label in [0, 1]}
+                st.badge(f"Class distribution after imbalance handling: {dist}")
                 
 
             st.session_state.preprocessed_X = X_processed
