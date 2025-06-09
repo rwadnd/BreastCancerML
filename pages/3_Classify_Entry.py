@@ -228,6 +228,7 @@ def main():
                                         "max_features": max_features, "bootstrap": bootstrap, "random_state": 42}
 
                     elif model_type == "SVM":
+                        st.warning("SVM models can take long time to train.")
                         C = st.select_slider(f"SVM C ", options=[0.1, 1, 10, 100, 1000], value=1, key=f"svmC_slot_{idx}")
                         kernel = st.selectbox(f"Kernel ", ["linear", "rbf", "poly", "sigmoid"], key=f"kernel_slot_{idx}")
                         gamma = st.selectbox(f"Gamma ", ["auto","scale"], key=f"gamma_slot_{idx}")
