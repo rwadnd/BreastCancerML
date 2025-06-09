@@ -1,9 +1,9 @@
-kagglehub=0.3.8
-plotly=5.24.1
-scipy=1.13.1
-scikit-learn=1.6.1
-xgboost=3.0.0
-lightgbm=4.6.0
+kagglehub==0.3.8
+plotly==5.24.1
+scipy==1.13.1
+scikit-learn==1.6.1
+xgboost==3.0.0
+lightgbm==4.6.0
 imblearn
 tensorflow
 keras
