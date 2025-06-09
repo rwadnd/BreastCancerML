@@ -74,12 +74,12 @@ def main():
         "Logistic Regression",
         "Gradient Boosting",
         "Decision Tree",
+        "LightGBM",
         "Random Forest",
         "K-Nearest Neighbors",
         "Naive Bayes",
-        "XGBoost",
-        "LightGBM",
         "SVM",
+        "XGBoost",
         "None"
     ]
 
@@ -87,7 +87,7 @@ def main():
     if "models_custom_entry" not in st.session_state:
         st.session_state.models_custom_entry = []
         for i in range(9):
-            j = 9 if i > 5 else i
+            j = 9 if i > 6 else i
             st.session_state.models_custom_entry.append({"type": default_model_types[j], "params": {}})
 
 
