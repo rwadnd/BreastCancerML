@@ -29,7 +29,7 @@ def main():
 
     # Sidebar buttons to manage models
     with st.sidebar:
-        st.header("🧠 Manage Models")
+        st.header("Manage Models")
         if "models" not in st.session_state:
             st.session_state.models = [{}]
 
@@ -46,12 +46,12 @@ def main():
     # Load dataset from session
     if "data" in st.session_state:
         data = st.session_state.data
-        st.write("Data is loaded from Kaggle. Shape:", data.shape)
+        st.write("Data is loaded from Kaggle Hub. Shape:", data.shape)
     else:
         st.warning("Data not found. Please return to the main page to load it.")
         return # Exit if data is not loaded
     
-    st.title("⚖️ Compare Models")
+    st.title("ML Models")
 
     # Prepare data for preprocessing. It will be modified in place.
     df = data.copy()
@@ -61,10 +61,10 @@ def main():
     y_processed = y_original.copy()
     fitted_preprocessing_transformers = {}
     
-    st.subheader("⚙️ Preprocessing Options")
+    st.subheader("🔄 Preprocessing Options")
     preprocessing_config = {}
 
-    if st.checkbox("Remove Outliers"):
+    if st.checkbox("Remove Outliers", key="remove_outliers_cb"):
         outlier_method = st.selectbox("Select outlier removal method", ["IQR", "Z-Score", "Winsorization"], key="outlier")
         preprocessing_config['outlier_removal'] = outlier_method
         if outlier_method == "Winsorization":

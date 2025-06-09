@@ -19,7 +19,7 @@ def main():
 
     if "data" in st.session_state:
         data = st.session_state.data
-        st.write("Data is loaded from Kaggle. Shape:", data.shape)
+        st.write("Data is loaded from Kaggle Hub. Shape:", data.shape)
     else:
         st.warning("Data not found. Please return to the main page to load it.")
         return # Exit if data is not loaded
@@ -38,7 +38,7 @@ def main():
     st.title("Data Analysis")
 
 
-    col1, col2 = st.columns([4, 1],vertical_alignment="center")
+    col1, _,col2 = st.columns([6,0.2, 1],vertical_alignment="center")
 
     with col1:
         st.subheader("Data Preview")
@@ -46,7 +46,8 @@ def main():
 
     with col2:
         st.subheader("Diagnosis Info")
-        st.markdown("**Benignant (B)** - 0\n\n**Malignant (M)** - 1")
+        st.success("**Benignant (B)** - 0")
+        st.error("**Malignant (M)** - 1")
 
 
     st.markdown("---")
@@ -92,7 +93,7 @@ def main():
     fig_pie.update_layout(showlegend=False)
     fig_pie.update_traces(textinfo='percent+label')
 
-    col1, col2 = st.columns(2)
+    col1,_, col2 = st.columns([2,0.2,2])
 
     with col1:
         st.plotly_chart(fig_diag, use_container_width=True)
@@ -104,7 +105,7 @@ def main():
     st.markdown("---")
     st.subheader("Interactive Correlation Heatmaps Side by Side")
 
-    col1, col2 = st.columns(2)
+    col1,_, col2 = st.columns([2,0.2,2])
 
     with col1:
         threshold1 = st.slider("Correlation Threshold", 0.6, 1.0, 0.7, 0.05, key="thresh1")
@@ -176,8 +177,8 @@ def main():
 
 
     with col2:
-        threshold2 = st.slider("Threshold for Absolute Sorted Correlation", 0.3, 1.0, 0.6, 0.05, key="thresh2")
-        
+        threshold2 = st.slider("Threshold for Absolute Sorted Correlation", 0.3, 1.0, 0.7, 0.05, key="thresh2")
+        show_nums = True if threshold2 > 0.55 else False
         # Ensure 'diagnosis' exists before attempting correlation
         if 'diagnosis' in data.columns:
             abs_corr_sorted = data.corr(numeric_only=True)[['diagnosis']].abs().sort_values(by='diagnosis', ascending=False)
@@ -187,7 +188,7 @@ def main():
                 st.warning("No features found with the selected threshold. Try lowering the threshold.")
             else:
                 fig_sorted = px.imshow(filtered_abs_corr,
-                                     text_auto=True,
+                                     text_auto=show_nums,
                                      color_continuous_scale='viridis',
                                      title="Absolute Correlation with Diagnosis")
                 fig_sorted.update_layout(
@@ -205,7 +206,7 @@ def main():
     st.subheader("Feature Distribution by Diagnosis")
     
     # New column layout for Histogram and its controls
-    hist_plot_col, hist_controls_col = st.columns([3, 1], vertical_alignment="top") # Adjust ratios as needed
+    hist_plot_col,_, hist_controls_col = st.columns([5,0.2, 1], vertical_alignment="center") # Adjust ratios as needed
 
     with hist_controls_col: # Controls go into the right column
         # First Dropdown: Feature Type
@@ -531,7 +532,6 @@ def main():
 
 
     st.markdown("---")
-    st.markdown("Developed by [Your Name or Team Name]")
 
 
 if __name__ == "__main__":

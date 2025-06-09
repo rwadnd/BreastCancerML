@@ -42,22 +42,29 @@ if "data" not in st.session_state:
 # Title
 st.title("🏥 Breast Cancer Classification Dashboard")
 
+
+col1, spacer, col2 = st.columns([4,1,2],vertical_alignment="center")
+
+
 # Welcome Message
-st.markdown("""
-Welcome to the **Breast Cancer Diagnostic Analysis App** built with Streamlit.
+with col1:
+    st.markdown("""
+    Welcome to the **Breast Cancer Diagnostic Analysis App**
 
-This application allows you to:
-- 🔍 **Explore and visualize** the Breast Cancer Wisconsin dataset
-- ⚙️ **Apply preprocessing techniques** of your choice
-- ⚖️ **Compare machine learning models** interactively
-- 🩺 **Classify custom entries** and interpret predictions
+    This application was developed as the graduation project assigned by **Baykar Technologies** , for **"Milli Teknoloji Akademesi, Yapay Zeka Uzmanlık Programı"**. And it allows you to:
+    - 🔍 **Explore and visualize** the Breast Cancer Wisconsin dataset
+    - ⚙️ **Apply preprocessing techniques** of your choice
+    - ⚖️ **Compare machine learning models** interactively
+    - 🩺 **Classify custom entries** and interpret predictions
 
-Use the **sidebar** to navigate through different sections.
-""")
+    Use the **sidebar** to navigate through different sections.
+    """)
 
-# Optional illustration or dataset source
-st.info("📚 Dataset: Breast Cancer Wisconsin (Diagnostic) Data Set — [View on Kaggle](https://www.kaggle.com/datasets/uciml/breast-cancer-wisconsin-data)")
+    # Optional illustration or dataset source
+    st.info("📚 Dataset: Breast Cancer Wisconsin (Diagnostic) Data Set — [View on Kaggle](https://www.kaggle.com/datasets/uciml/breast-cancer-wisconsin-data)")
 
+with col2:
+    st.image("ribbon.svg",width=220)
 # Optional footer
 st.markdown("---")
-st.markdown("Developed by **Your Name or Team Name** | Powered by Streamlit 💡")
+st.markdown("Developed by **Ravad Nadam** | Powered by Streamlit 💡")

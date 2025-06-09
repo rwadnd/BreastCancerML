@@ -63,7 +63,7 @@ def apply_preprocessing_to_dataframe(df_input, original_features, fitted_transfo
 def main():
     Navbar() # Display the navigation bar
 
-    st.title("🔬 Classify Custom Entry & Train Models")
+   
 
     # Initialize session state for trained models if not already present
     if "trained_models_custom_entry" not in st.session_state:
@@ -92,11 +92,13 @@ def main():
     # Load dataset from session state
     if "data" in st.session_state:
         data = st.session_state.data
-        st.write("Data is loaded. Shape:", data.shape)
+        st.write("Data is loaded from Kaggle Hub. Shape:", data.shape)
     else:
         st.warning("Data not found. Please return to the main page to load it.")
         return # Exit if data is not loaded
 
+
+    st.title("Train Models & Classify Custom Entry")
     # Identify feature columns for input sliders
     features_for_input = [col for col in data.columns if col not in ['id', 'diagnosis', 'Unnamed: 32']]
 
@@ -141,11 +143,12 @@ def main():
 
     for idx, group in enumerate(feature_groups):
         with cols_input_sliders[content_col_indices[idx]]: # Place content in the designated content column
-            st.markdown(f"**Feature Set {idx+1}**")
+            column_value = "mean" if idx + 1 == 1 else "se" if idx + 1 == 2 else "worst"
+            st.markdown(f"**Feature Set ({column_value})**")
             for feature in group:
                 # Get min, max, and mean values from the dataset for slider range and default
-                min_val = float(data[feature].min())
-                max_val = float(data[feature].max())
+                min_val = float(data[feature].min() - 0.1 * data[feature].min())
+                max_val = float(data[feature].max() + 0.1 * data[feature].min())
                 mean_val = float(data[feature].mean())
                 
                 # Use value from session state if set by random entry, otherwise use mean
@@ -153,7 +156,7 @@ def main():
 
                 # Create a slider for each feature
                 feature_values[feature] = st.slider(
-                    f"{feature} (Min: {min_val:.2f}, Max: {max_val:.2f})", # Display min/max for context
+                    f"{feature} ", # Display min/max for context
                     min_val,
                     max_val,
                     current_slider_value, # Use the dynamic value
