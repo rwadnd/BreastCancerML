@@ -332,10 +332,11 @@ def main():
 
                 cm = confusion_matrix(y_test, y_pred)
                 z = cm.tolist()
-                x_labels, y_labels = ['Pred 0', 'Pred 1'], ['Actual 0', 'Actual 1']
-                z_text = [[str(val) for val in row] for row in z]
+                z_reversed = z[::-1]
+                x_labels, y_labels = ['Pred 0', 'Pred 1'], ['Actual 1', 'Actual 0']
+                z_text = [[str(val) for val in row] for row in z_reversed]
 
-                fig_cm = ff.create_annotated_heatmap(z, x=x_labels, y=y_labels, annotation_text=z_text, colorscale='Blues')
+                fig_cm = ff.create_annotated_heatmap(z_reversed, x=x_labels, y=y_labels, annotation_text=z_text, colorscale='Blues')
                 fig_cm.update_layout(title='🧮 Confusion Matrix', width=300, height=400)
 
                 spacer1, col1, spacer2, col2, spacer3, col3, spacer4 = st.columns([0.1, 1.5, 0.4, 1, 0.5, 1, 0.1], vertical_alignment="center")

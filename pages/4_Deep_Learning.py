@@ -240,21 +240,15 @@ def main():
             # Confusion Matrix
             cm = confusion_matrix(y_val, y_pred)
             z = cm.tolist()
-            x_labels = ['Pred Benign (0)', 'Pred Malignant (1)']
-            y_labels = ['Actual Benign (0)', 'Actual Malignant (1)']
-            z_text = [[str(val) for val in row] for row in z]
+            z_reversed = z[::-1]
+            x_labels, y_labels = ['Pred 0', 'Pred 1'], ['Actual 1', 'Actual 0']
+            z_text = [[str(val) for val in row] for row in z_reversed]
 
-            fig_cm = ff.create_annotated_heatmap(
-                z, x=x_labels, y=y_labels, annotation_text=z_text, colorscale='Blues'
-            )
-            fig_cm.update_layout(
-                title='🧮 Confusion Matrix',
-                width=400,
-                height=400
-            )
+            fig_cm = ff.create_annotated_heatmap(z_reversed, x=x_labels, y=y_labels, annotation_text=z_text, colorscale='Blues')
+            fig_cm.update_layout(title='🧮 Confusion Matrix', width=300, height=400)
             
             # Display plots side-by-side
-            col_metrics1, col_metrics2 = st.columns(2)
+            col_metrics1,_, col_metrics2 = st.columns([3,1,2])
             with col_metrics1:
                 st.plotly_chart(fig_roc, use_container_width=True)
             with col_metrics2:
