@@ -233,7 +233,7 @@ def main():
 
                     elif model_type == "SVM":
                         st.warning("If you are on the cloud, SVM models can take long time to train. Apply feature scaling to make it a lot faster")
-                        C = st.select_slider(f"SVM C ", options=[0.1, 0.5, 1, 50, 500], value=0.1, key=f"svmC_{idx}")
+                        C = st.select_slider(f"SVM C ", options=[0.1, 0.5, 1, 5], value=0.1, key=f"svmC_{idx}")
                         kernel = st.selectbox(f"Kernel ", ["linear", "rbf", "poly", "sigmoid"], key=f"kernel_{idx}")
                         gamma = st.selectbox(f"Gamma ", ["auto", "scale"], key=f"gamma_{idx}")
                         degree = st.slider(f"Degree (for poly) ", 2, 5, value=3, key=f"degree_{idx}", disabled=(kernel != "poly"))
