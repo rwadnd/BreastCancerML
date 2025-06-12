@@ -89,6 +89,12 @@ def main():
     y_processed = y_original.copy()
     fitted_preprocessing_transformers = {}
     
+
+    st.subheader("🔀 Train-Test Split")
+    col1,_ = st.columns([2,6])
+    with col1:
+        train_split = st.select_slider("Test Split",options=[0.10,0.15, 0.20, 0.25],value=0.15)
+
     st.subheader("🔄 Preprocessing Options")
     preprocessing_config = {}
 
@@ -206,10 +212,10 @@ def main():
                 st.badge(f"Class distribution before imbalance handling: {dist}")
 
                 if preprocessing_config['imbalance_handling'] == "Oversampling (SMOTE)":
-                    oversampler = SMOTE(random_state=42)
+                    oversampler = SMOTE(random_state=60)
                     X_processed, y_processed = oversampler.fit_resample(X_processed, y_processed)
                 elif preprocessing_config['imbalance_handling'] == "Undersampling (Random)":
-                    undersampler = RandomUnderSampler(random_state=42)
+                    undersampler = RandomUnderSampler(random_state=60)
                     X_processed, y_processed = undersampler.fit_resample(X_processed, y_processed)
 
                 dist = {label: int(y_processed.value_counts().get(label, 0)) for label in [0, 1]}
@@ -279,7 +285,7 @@ def main():
                     bootstrap = st.checkbox(f"Bootstrap ", value=True, key=f"bootstrap_{i}")
                     model_params = {"n_estimators": n_estimators, "max_depth": max_depth, "criterion": criterion,
                                     "min_samples_split": min_samples_split, "min_samples_leaf": min_samples_leaf,
-                                    "max_features": max_features, "bootstrap": bootstrap, "random_state": 42}
+                                    "max_features": max_features, "bootstrap": bootstrap, "random_state": 60}
 
                 elif model_type == "SVM":
                     st.warning("If you are on the cloud, SVM models can take long time to train.")
@@ -297,7 +303,7 @@ def main():
                     learning_rate = st.select_slider(f"GB Learning Rate ", options=[0.01, 0.05, 0.1, 0.2], value=0.1, key=f"gb_lr_{i}")
                     max_depth = st.slider(f"GB Max Depth ", 3, 8, step=1, key=f"gb_depth_{i}")
                     subsample = st.select_slider(f"GB Subsample ", options=[0.7, 0.8, 0.9, 1.0], value=1.0, key=f"gb_subsample_{i}")
-                    model_params = {"n_estimators": n_estimators, "learning_rate": learning_rate, "max_depth": max_depth, "subsample": subsample, "random_state": 42}
+                    model_params = {"n_estimators": n_estimators, "learning_rate": learning_rate, "max_depth": max_depth, "subsample": subsample, "random_state": 60}
 
                 elif model_type == "K-Nearest Neighbors":
                     n_neighbors = st.slider(f"KNN Neighbors ", 1, 20, value=5, key=f"knn_n_{i}")
@@ -314,7 +320,7 @@ def main():
                     min_samples_split = st.slider(f"Min Samples Split ", 2, 20, value=2, key=f"min_split_{i}")
                     min_samples_leaf = st.slider(f"Min Samples Leaf ", 1, 20, value=1, key=f"min_leaf_{i}")
                     criterion = st.selectbox(f"Criterion ", ["gini", "entropy", "log_loss"], key=f"crit_{i}")
-                    model_params = {"max_depth": max_depth, "min_samples_split": min_samples_split, "min_samples_leaf": min_samples_leaf, "criterion": criterion, "random_state": 42}
+                    model_params = {"max_depth": max_depth, "min_samples_split": min_samples_split, "min_samples_leaf": min_samples_leaf, "criterion": criterion, "random_state": 60}
 
                 elif model_type == "XGBoost":
                     st.warning("If you are on the cloud, XGBoost models can take long time to train.")
@@ -326,7 +332,7 @@ def main():
                     gamma = st.select_slider(f"XGB Gamma ", options=[0, 0.1, 0.2, 0.4], value=0, key=f"xgb_gamma_{i}")
                     model_params = {"n_estimators": n_estimators, "learning_rate": learning_rate, "max_depth": max_depth,
                                     "subsample": subsample, "colsample_bytree": colsample_bytree, "gamma": gamma,
-                                    "use_label_encoder": False, "eval_metric": "logloss", "random_state": 42}
+                                    "use_label_encoder": False, "eval_metric": "logloss", "random_state": 60}
 
                 elif model_type == "LightGBM":
                     n_estimators = st.slider(f"LGBM Trees ", 50, 300, step=50, value=100, key=f"lgbm_n_{i}")
@@ -337,7 +343,7 @@ def main():
                     reg_lambda = st.select_slider(f"LGBM L2 Reg ", options=[0, 0.1, 0.5, 1], value=0, key=f"lgbm_reg_l_{i}")
                     model_params = {"n_estimators": n_estimators, "learning_rate": learning_rate, "num_leaves": num_leaves,
                                     "max_depth": max_depth, "reg_alpha": reg_alpha, "reg_lambda": reg_lambda,
-                                    "random_state": 42}
+                                    "random_state": 60}
                 st.session_state.models[i] = {"type": model_type, "params": model_params}
 
         
@@ -359,7 +365,7 @@ def main():
                     elif config['type'] == "XGBoost": model = XGBClassifier(**config['params'])
                     elif config['type'] == "LightGBM": model = LGBMClassifier(**config['params'])
 
-                    X_train, X_test, y_train, y_test = train_test_split(X_processed, y_processed, test_size=0.2, random_state=42)
+                    X_train, X_test, y_train, y_test = train_test_split(X_processed, y_processed, test_size=train_split, random_state=60)
                     model.fit(X_train, y_train)
                     y_pred = model.predict(X_test)
 
@@ -468,7 +474,7 @@ def main():
                 y_np = y_np.astype(np.float32)
 
                 # Split data for training and validation within this page
-                X_train_dl, X_val_dl, y_train_dl, y_val_dl = train_test_split(X_np, y_np, test_size=0.2, random_state=42)
+                X_train_dl, X_val_dl, y_train_dl, y_val_dl = train_test_split(X_np, y_np, test_size=train_split, random_state=60)
 
                 # Build the Keras Model
                 model_dl = Sequential()
