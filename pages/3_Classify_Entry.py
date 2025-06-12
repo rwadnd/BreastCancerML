@@ -215,7 +215,9 @@ def main():
                         solver = st.selectbox(f"Solver ",available_solvers, key=f"solver_{idx}")
                         fit_intercept = st.checkbox(f"Fit Intercept ", value=True, key=f"fit_int_{idx}")
                         class_weight = st.selectbox(f"Class Weight ", [None, "balanced"], key=f"lw_{idx}")
-                        model_params = {"C": C, "penalty": penalty, "solver": solver, "max_iter": 1000, "fit_intercept": fit_intercept, "class_weight": class_weight}
+                        if penalty == 'elasticnet': l1_ratio = 1
+                        else: l1_ratio= None
+                        model_params = {"C": C, "penalty": penalty, "solver": solver, "max_iter": 1000, "fit_intercept": fit_intercept, "class_weight": class_weight, "l1_ratio": l1_ratio}
 
                     elif model_type == "Random Forest":
                         n_estimators = st.slider(f"Trees ", 10, 500, step=10, value=100, key=f"n_slot_{idx}")
