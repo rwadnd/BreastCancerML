@@ -230,7 +230,7 @@ def main():
                                         "max_features": max_features, "bootstrap": bootstrap, "random_state": 42}
 
                     elif model_type == "SVM":
-                        st.warning("If you are on the cloud, SVM models can take long time to train.")
+                        st.warning("If you are on the cloud, SVM models can take long time to train. Apply feature scaling to make it a lot faster")
                         C = st.select_slider(f"SVM C ", options=[0.1, 0.5, 1, 50, 500], value=0.1, key=f"svmC_{idx}")
                         kernel = st.selectbox(f"Kernel ", ["linear", "rbf", "poly", "sigmoid"], key=f"kernel_{idx}")
                         gamma = st.selectbox(f"Gamma ", ["auto", "scale"], key=f"gamma_{idx}")
@@ -264,7 +264,7 @@ def main():
                         model_params = {"max_depth": max_depth, "min_samples_split": min_samples_split, "min_samples_leaf": min_samples_leaf, "criterion": criterion, "random_state": 42}
 
                     elif model_type == "XGBoost":
-                        st.warning("If you are on the cloud, XGBoost models can take long time to train.")
+                        st.warning("If you are on the cloud, XGBoost models can take long time to train. Apply feature scaling to make it a lot faster")
                         n_estimators = st.slider(f"XGB Trees ", 50, 300, step=50, value=100, key=f"xgb_n_slot_{idx}")
                         learning_rate = st.select_slider(f"XGB Learning Rate ", options=[0.01, 0.05, 0.1, 0.2], value=0.1, key=f"xgb_lr_slot_{idx}")
                         max_depth = st.slider(f"XGB Max Depth ", 3, 10, value=6, key=f"xgb_depth_slot_{idx}")
