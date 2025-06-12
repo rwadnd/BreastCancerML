@@ -23,6 +23,7 @@ from scipy.stats import zscore, mstats
 from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import RandomUnderSampler
 from collections import Counter
+import time # Import the time module
 
 # Deep Learning Imports
 import tensorflow as tf
@@ -250,7 +251,6 @@ def main():
             
             run_all_ML = st.button("🚀 Run All ML Models")
 
-
                 
         st.subheader("📊 Model Selection")
         model_cols = st.columns(len(st.session_state.models))
@@ -366,7 +366,12 @@ def main():
                     elif config['type'] == "LightGBM": model = LGBMClassifier(**config['params'])
 
                     X_train, X_test, y_train, y_test = train_test_split(X_processed, y_processed, test_size=train_split, random_state=60)
+                    
+                    start_time = time.time() # Start time measurement
                     model.fit(X_train, y_train)
+                    end_time = time.time() # End time measurement
+                    training_time = end_time - start_time # Calculate training time
+
                     y_pred = model.predict(X_test)
 
                     st.code(classification_report(y_test, y_pred, digits=3), language="text")
@@ -406,6 +411,7 @@ def main():
                         else: X_for_cv = X_processed
                         cv_score = cross_val_score(model, X_for_cv, y_processed, cv=3, scoring='accuracy')
                         st.metric(label="CV Accuracy (3-fold)", value=f"{cv_score.mean():.3f}", delta=f"± {cv_score.std():.3f}")
+                        st.metric(label="Training Time (s)", value=f"{training_time:.2f}") # Display training time
 
 
     with tab2:
@@ -494,12 +500,16 @@ def main():
                               loss='binary_crossentropy', # Appropriate loss for binary classification
                               metrics=['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()])
 
+                start_time_dl = time.time() # Start time measurement for DL model
                 # Train the model
                 history = model_dl.fit(X_train_dl, y_train_dl,
                                     epochs=epochs,
                                     batch_size=batch_size,
                                     validation_data=(X_val_dl, y_val_dl),
                                     verbose=0) # Suppress verbose output during training
+                end_time_dl = time.time() # End time measurement for DL model
+                training_time_dl = end_time_dl - start_time_dl # Calculate training time for DL model
+
 
                 st.success("Deep Learning Model Trained Successfully!")
 
@@ -558,11 +568,13 @@ def main():
                 fig_cm_dl.update_layout(title='🧮 Confusion Matrix', width=300, height=400)
                 
                 # Display plots side-by-side
-                col_metrics1_dl,_, col_metrics2_dl = st.columns([3,1,2])
+                col_metrics1_dl,_, col_metrics2_dl,_, col_metrics3_dl = st.columns([5,1,3,1,2],vertical_alignment="center")
                 with col_metrics1_dl:
                     st.plotly_chart(fig_roc_dl, use_container_width=True)
                 with col_metrics2_dl:
                     st.plotly_chart(fig_cm_dl, use_container_width=True)
+                with col_metrics3_dl:
+                    st.metric(label="Training Time (s)", value=f"{training_time_dl:.2f}") # Display training time for DL model
                 
                 st.info(f"Model trained on Preprocessed Data. Evaluation metrics calculated on a 20% validation split.")
                 
