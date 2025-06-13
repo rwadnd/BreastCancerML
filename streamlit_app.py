@@ -64,7 +64,7 @@ with col1:
     st.info("📚 Dataset: Breast Cancer Wisconsin (Diagnostic) Data Set — [View on Kaggle](https://www.kaggle.com/datasets/uciml/breast-cancer-wisconsin-data)")
 
 with col2:
-    st.image("ribbon.svg",width=220)
+    st.image("extra/ribbon.svg",width=220)
 # Optional footer
 st.markdown("---")
 st.markdown("Developed by **Ravad Nadam** | Powered by Streamlit 💡")
