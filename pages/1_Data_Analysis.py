@@ -155,7 +155,7 @@ def main():
             corr_long = mutual_corr_matrix.where(mask).stack().reset_index()
             corr_long.columns = ['Feature 1', 'Feature 2', 'Correlation']
 
-            strong_pairs = corr_long[strong_pairs['Correlation'] > threshold1]
+            strong_pairs = corr_long[corr_long['Correlation'] > threshold1]
 
             if strong_pairs.empty:
                 st.warning("No feature pairs meet the threshold. Try lowering it.")
