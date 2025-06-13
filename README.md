@@ -2,7 +2,7 @@
 
 This interactive web application was developed as part of the **Baykar Milli Teknoloji Akademesi - Yapay Zeka Uzmanlık Programı** graduation project. It enables users to explore the **Breast Cancer Wisconsin (Diagnostic) Dataset**, apply various preprocessing techniques, compare machine learning and deep learning models, and make real-time predictions on custom entries.
 
-🚀 **Live App**: [breastcancerml.streamlit.app](https://breastcancerml.streamlit.app)
+🚀 **Live App**: <a href="https://breastcancerml.streamlit.app" target="_blank">breastcancerml.streamlit.app</a>
 
 > 📚 This project includes:
 > - A fully interactive **Streamlit dashboard**
@@ -83,4 +83,7 @@ This project is licensed under the MIT License. See the LICENSE file for more de
 ## 👨‍💻 Author
 
 Developed by **Ravad Nadam**  
-Contact: [LinkedIn](https://linkedin.com/in/your-profile) • [Email](mailto:your.email@example.com)
+Contact: <a href="https://www.linkedin.com/in/ravad-nadam/" target="_blank">LinkedIn</a> • [Email](mailto:ravad.nadam@gmail.com)
+
+
+
