@@ -64,8 +64,8 @@ This interactive web application was developed as part of the **Baykar Milli Tek
 ### Installation
 
 ```bash
-git clone https://github.com/your-username/breast-cancer-streamlit.git
-cd breast-cancer-streamlit
+git clone https://github.com/rwadnd/BreastCancerML.git
+cd BreastCancerML
 pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
