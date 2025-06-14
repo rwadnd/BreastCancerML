@@ -52,7 +52,7 @@ This interactive web application was developed as part of the **Baykar Milli Tek
 
 ### Requirements
 
-- Python (Preferably 3.11)
+- Python 3.11 environment
 - Streamlit
 - scikit-learn
 - TensorFlow
@@ -60,6 +60,10 @@ This interactive web application was developed as part of the **Baykar Milli Tek
 - pandas, numpy
 - imbalanced-learn
 - kagglehub (for dataset import)
+- jupyter
+- seaborn (for jupyter notebook only)
+- matplotlib (for jupyter notebook only)
+- scikeras (for jupyter notebook only)
 
 ### Installation
 
