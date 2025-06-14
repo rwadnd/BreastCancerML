@@ -187,7 +187,7 @@ def main():
     st.markdown("---")
 
     # --- Model Configuration Grid ---
-    st.subheader("Configure Models")
+    st.subheader("📊 Configure Models")
 
     # Define the total number of model slots (3x3 grid = 9 slots)
     num_model_slots = 9
@@ -202,7 +202,7 @@ def main():
             idx = i * 3 + j # Calculate the current model slot index
             if idx < num_model_slots: # Ensure we don't go beyond 9 slots
                 with row_cols[content_col_indices[j]]: # Place content in the designated content column
-                    st.markdown(f"#### Model Slot {idx+1}")
+                    st.markdown(f"#### ⚙️ Model Slot {idx+1}")
 
                     # Selectbox for choosing the model type for this slot
                     model_type = st.selectbox(

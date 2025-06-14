@@ -110,7 +110,7 @@ def main():
         st.plotly_chart(fig_pie, use_container_width=True)
 
     st.markdown("---")
-    st.subheader("Interactive Correlation Heatmaps Side by Side")
+    st.subheader("Interactive Correlation Heatmaps")
 
     # Layout for correlation heatmaps and controls
     col1, _, col2 = st.columns([2, 0.2, 2])
@@ -294,7 +294,7 @@ def main():
             st.info("Select a feature to display its distribution.")
 
     st.markdown("---")
-    st.subheader("Distribution of Feature Group with KDE (Interactive Grid)")
+    st.subheader("Distribution of Feature Group with KDE")
 
     # Select box to choose which feature group to display for KDE plots
     box_kde_feature_group = st.selectbox("Select Feature Group to Display", ["mean", "se", "worst"], key="grid_kde_feature_group")
