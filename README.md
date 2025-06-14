@@ -5,7 +5,7 @@ This interactive web application was developed as part of the **Baykar Milli Tek
 🚀 **Live App**: <a href="https://breastcancerml.streamlit.app" target="_blank">breastcancerml.streamlit.app</a>
 
 > 📚 This project includes:
-> - A fully interactive **Streamlit dashboard**
+> - A fully interactive **Streamlit Application**
 > - A **Jupyter Notebook** for standalone analysis
 > - A formal **research report** summarizing methodology and results
 
