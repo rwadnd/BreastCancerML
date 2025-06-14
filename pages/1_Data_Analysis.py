@@ -26,6 +26,9 @@ def main():
         st.warning("Data not found. Please return to the \"Intro\" page to load it.")
         return
 
+    # Colors for color scheme
+    color_green = "#0f7379"
+    color_red = "#9E260C"
     # Feature Grouping based on common suffixes
     # Exclude 'id', 'diagnosis', and 'Unnamed: 32' (if it exists) from features
     all_numeric_features = [col for col in data.columns if col not in ['id', 'diagnosis', 'Unnamed: 32']]
@@ -80,7 +83,7 @@ def main():
         x='Diagnosis',
         y='Count',
         color='Diagnosis',
-        color_discrete_map={"Benign": "green", "Malignant": "red"},
+        color_discrete_map={"Benign": color_green, "Malignant": color_red},
         title="Diagnosis Count (Bar Chart)"
     )
     fig_diag.update_layout(bargap=0.1)
@@ -91,7 +94,7 @@ def main():
         names='Diagnosis',
         values='Count',
         color='Diagnosis',
-        color_discrete_map={"Benign": "green", "Malignant": "red"},
+        color_discrete_map={"Benign": color_green, "Malignant": color_red},
         title="Diagnosis Ratio (Pie Chart)"
     )
     fig_pie.update_layout(showlegend=False)
@@ -142,7 +145,7 @@ def main():
                         text_auto=True,
                         x=filtered_corr.columns,
                         y=filtered_corr.columns,
-                        color_continuous_scale='viridis',
+                        color_continuous_scale='aggrnyl',
                         title="Correlation with Diagnosis"
                     )
                     fig_filtered.update_layout(width=800, height=600, margin=dict(l=0, r=0, t=30, b=0))
@@ -174,7 +177,7 @@ def main():
                     text_auto=True,
                     x=filtered_corr.columns,
                     y=filtered_corr.columns,
-                    color_continuous_scale='viridis',
+                    color_continuous_scale='aggrnyl',
                     title="Mutual Feature Correlation"
                 )
                 fig_filtered.update_layout(width=800, height=600, margin=dict(l=0, r=0, t=30, b=0))
@@ -196,7 +199,7 @@ def main():
                 # Display absolute correlation heatmap
                 fig_sorted = px.imshow(filtered_abs_corr,
                                      text_auto=show_nums,
-                                     color_continuous_scale='viridis',
+                                     color_continuous_scale='aggrnyl',
                                      title="Absolute Correlation with Diagnosis")
                 fig_sorted.update_layout(
                     width=800,
@@ -264,16 +267,16 @@ def main():
             fig.add_trace(go.Histogram(
                 x=malignant_values,
                 name='Malignant',
-                opacity=0.5,
-                marker_color='red',
+                opacity=0.7,
+                marker_color=color_green,
                 nbinsx=bin_count
             ))
 
             fig.add_trace(go.Histogram(
                 x=benign_values,
                 name='Benign',
-                opacity=0.5,
-                marker_color='green',
+                opacity=0.7,
+                marker_color=color_red,
                 nbinsx=bin_count
             ))
 
@@ -331,7 +334,7 @@ def main():
                             x=x,
                             nbinsx=30,
                             name="Histogram",
-                            marker_color="lightblue",
+                            marker_color=color_green,
                             opacity=0.6,
                             showlegend=False,
                         ))
@@ -342,7 +345,7 @@ def main():
                             y=y_kde * len(x) * (x_range[1] - x_range[0]),
                             mode='lines',
                             name='KDE',
-                            line=dict(color='blue'),
+                            line=dict(color=color_green),
                             showlegend=False
 
                         ))
@@ -398,7 +401,7 @@ def main():
                 data_frame=data,
                 dimensions=numeric_dimensions,
                 color=data['diagnosis'].replace({0: "Benign", 1: "Malignant"}),
-                color_discrete_map={"Benign": "green", "Malignant": "red"},
+                color_discrete_map={"Benign": color_green, "Malignant": color_red},
                 title="Pairplot-like Scatter Matrix Colored by Diagnosis",
                 height=900
             )
@@ -441,7 +444,7 @@ def main():
                     x="diagnosis",
                     y=feature,
                     color=data["diagnosis"].replace({0: "Benign", 1: "Malignant"}),
-                    color_discrete_map={"Benign": "green", "Malignant": "red"},
+                    color_discrete_map={"Benign": color_green, "Malignant": color_red},
                     points="all",  # Show individual data points
                     title=feature
                 )
@@ -511,7 +514,7 @@ def main():
                                          color='diagnosis',
                                          title='PCA - 2 Components',
                                          hover_data=all_numeric_features, # Show original feature values on hover
-                                         color_discrete_map={"Benign": "green", "Malignant": "red"}, height=600)
+                                         color_discrete_map={"Benign": color_green, "Malignant": color_red}, height=600)
                     st.plotly_chart(fig_pca, use_container_width=True)
                 elif pca_dimensions == 3:
                     fig_pca = px.scatter_3d(df_for_plotting,
@@ -521,7 +524,7 @@ def main():
                                             color='diagnosis',
                                             title='PCA - 3 Components',
                                             hover_data=all_numeric_features, # Show original feature values on hover
-                                            color_discrete_map={"Benign": "green", "Malignant": "red"}, height=600)
+                                            color_discrete_map={"Benign": color_green, "Malignant": color_red}, height=600)
                     st.plotly_chart(fig_pca, use_container_width=True)
 
         with pca_info_col:
