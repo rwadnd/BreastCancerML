@@ -4,91 +4,104 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import math
-from modules.nav import Navbar # Assuming this is your navigation module
+from modules.nav import Navbar
 
 # Import necessary sklearn modules for models and preprocessing (for applying transformers)
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
-from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
 
-# Import preprocessing modules (needed by apply_preprocessing_to_dataframe, but not for direct UI)
+# Import preprocessing modules (needed by apply_preprocessing_to_dataframe)
 from sklearn.impute import SimpleImputer, KNNImputer
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 from sklearn.feature_selection import SelectKBest, RFE, f_classif
 from sklearn.decomposition import PCA
-from scipy.stats import zscore, mstats # For winsorization if it was applied via 2_Compare_Models.py
+from scipy.stats import zscore, mstats
 from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import RandomUnderSampler
-from collections import Counter
 
 
+# Set Streamlit page configuration for wide layout
 st.set_page_config(page_title="Classify Custom Entry", layout="wide")
 
 # Helper function to apply preprocessing transformers to a DataFrame
-# This function will use the *fitted* transformers passed from session state
+# This function uses the *fitted* transformers passed from session state
 def apply_preprocessing_to_dataframe(df_input, original_features, fitted_transformers):
+    """
+    Applies a sequence of fitted preprocessing transformers to an input DataFrame.
+    This is crucial for ensuring new data is processed consistently with the training data.
+
+    Args:
+        df_input (pd.DataFrame): The DataFrame to apply transformations to.
+        original_features (list): List of feature names from the original dataset.
+                                  Ensures the input DataFrame has the correct columns.
+        fitted_transformers (dict): A dictionary containing fitted scikit-learn transformers
+                                    (e.g., 'imputer', 'scaler', 'feature_selector', 'pca').
+
+    Returns:
+        pd.DataFrame: The preprocessed DataFrame.
+    """
     df = df_input.copy()
-    
-    # Ensure columns match original features before applying transformations
-    # This is critical if feature selection/PCA changed the number of columns
-    # For a new single input row, we assume it has all original features from data_source
+
+    # Ensure columns match original features before applying transformations.
+    # This is critical if feature selection/PCA changed the number of columns.
+    # For a new single input row, it's assumed to have all original features.
     df = df[original_features].copy()
 
 
-    # Apply Imputation (if imputer was fitted)
+    # Apply Imputation if an imputer was fitted and provided
     if 'imputer' in fitted_transformers and fitted_transformers['imputer'] is not None:
         df = pd.DataFrame(fitted_transformers['imputer'].transform(df), columns=df.columns)
 
-    # Apply Scaling (if scaler was fitted)
+    # Apply Scaling if a scaler was fitted and provided
     if 'scaler' in fitted_transformers and fitted_transformers['scaler'] is not None:
         df = pd.DataFrame(fitted_transformers['scaler'].transform(df), columns=df.columns)
 
-    # Apply Feature Selection/Reduction (if selector/pca was fitted)
+    # Apply Feature Selection/Reduction if a selector or PCA was fitted
     if 'feature_selector' in fitted_transformers and fitted_transformers['feature_selector'] is not None:
         # For SelectKBest/RFE, transform and then get new column names
-        df = pd.DataFrame(fitted_transformers['feature_selector'].transform(df), columns=fitted_transformers['feature_selector'].get_feature_names_out(df.columns))
+        df = pd.DataFrame(fitted_transformers['feature_selector'].transform(df),
+                          columns=fitted_transformers['feature_selector'].get_feature_names_out(df.columns))
     elif 'pca' in fitted_transformers and fitted_transformers['pca'] is not None:
         # For PCA, transform and create new column names (PC_1, PC_2, etc.)
-        df = pd.DataFrame(fitted_transformers['pca'].transform(df), columns=[f'PC_{j+1}' for j in range(fitted_transformers['pca'].n_components_)])
+        df = pd.DataFrame(fitted_transformers['pca'].transform(df),
+                          columns=[f'PC_{j+1}' for j in range(fitted_transformers['pca'].n_components_)])
     
     return df
 
 
 def main():
-    Navbar() # Display the navigation bar
-
-   
+    # Display the navigation bar
+    Navbar()
 
     # Initialize session state for trained models if not already present
     if "trained_models_custom_entry" not in st.session_state:
         st.session_state.trained_models_custom_entry = {}
-    
-    # Define a list of default model types for each of the 9 slots
+
+    # Define a list of default model types for the 9 model configuration slots
     default_model_types = [
-        "Logistic Regression",
-        "Gradient Boosting",
-        "Decision Tree",
-        "LightGBM",
-        "Random Forest",
-        "K-Nearest Neighbors",
-        "Naive Bayes",
-        "SVM",
-        "XGBoost",
-        "None"
+        "Logistic Regression", "Gradient Boosting", "Decision Tree",
+        "LightGBM", "Random Forest", "K-Nearest Neighbors",
+        "Naive Bayes", "SVM", "XGBoost", "None" # "None" allows a slot to be empty
     ]
 
     # Initialize models configuration for this page if not present
+    # This ensures consistent model selections across page reloads
     if "models_custom_entry" not in st.session_state:
         st.session_state.models_custom_entry = []
+        # Assign default model types to slots
         for i in range(9):
-            j = 9 if i > 6 else i
-            st.session_state.models_custom_entry.append({"type": default_model_types[j], "params": {}})
+            # Set the last two models (slots 8 and 9, which are indices 7 and 8) to "None"
+            if i >= 7: # For slots with index 7 (8th slot) and 8 (9th slot)
+                model_type_to_assign = "None"
+            else:
+                model_type_to_assign = default_model_types[i]
+            st.session_state.models_custom_entry.append({"type": model_type_to_assign, "params": {}})
 
 
     # Load dataset from session state
@@ -101,82 +114,84 @@ def main():
 
 
     st.title("Train Models & Classify Custom Entry")
-    # Identify feature columns for input sliders
+    # Identify feature columns for input sliders, excluding ID, diagnosis, and unnamed columns
     features_for_input = [col for col in data.columns if col not in ['id', 'diagnosis', 'Unnamed: 32']]
 
-    # --- Feature Input Sliders ---
+    # --- Custom Feature Input Section ---
     st.subheader("Enter Custom Feature Values:")
 
-    # Function to select a random row and update slider values in session state
+    # Function to select a random row from the dataset and update slider values
     def use_random_entry():
         if data is not None and not data.empty:
             random_row_index = np.random.randint(0, len(data))
             random_entry = data.iloc[random_row_index]
-            
-            # Update session state for each slider
+
+            # Update session state for each slider with values from the random row
             for feature in features_for_input:
                 st.session_state[f"input_slider_{feature}"] = float(random_entry[feature])
-            
-            # Store the selected row info for display
+
+            # Store the selected row's info for display
             st.session_state.selected_random_row_index = random_row_index
             st.session_state.selected_random_row_diagnosis = "Malignant" if random_entry['diagnosis'] == 1 else "Benign"
         else:
             st.warning("No data available to select a random entry.")
 
-    # Add the "Use a random entry" button
-    if st.button("🎲 Use a random entry from the dataset"):
+    # Button to trigger loading a random entry
+    if st.button("🎲 Load a random entry from the dataset"):
         use_random_entry()
         st.session_state.classify_now = True # Trigger classification after random entry selection
 
-    # Display selected random entry info if available
+    # Display information about the selected random entry if available
     if "selected_random_row_index" in st.session_state:
-        st.info(f"Selected Row Index: **{st.session_state.selected_random_row_index}** (Actual Label: **{st.session_state.selected_random_row_diagnosis}**)")
+        st.info(f"Last Loaded Row Index: **{st.session_state.selected_random_row_index}** (Actual Label: **{st.session_state.selected_random_row_diagnosis}**)")
 
 
-    # Divide features into 3 groups of 10 for display in 3 columns
+    # Divide features into 3 groups (mean, se, worst) for display in 3 columns
+    # Assumes features are ordered by these groups.
     feature_groups = [features_for_input[i:i + 10] for i in range(0, len(features_for_input), 10)]
-    feature_values = {} # Dictionary to store user's input values
+    feature_values = {} # Dictionary to store user's input values from sliders
 
     # Create 3 columns for feature input sliders with explicit spacing
-    cols_input_sliders = st.columns([1, 0.05, 1, 0.05, 1]) # Added small spacer columns
-    
+    cols_input_sliders = st.columns([1, 0.05, 1, 0.05, 1]) # Added small spacer columns for visual separation
+
     # Map content to the correct column indices (0, 2, 4)
     content_col_indices = [0, 2, 4]
 
     for idx, group in enumerate(feature_groups):
         with cols_input_sliders[content_col_indices[idx]]: # Place content in the designated content column
-            column_value = "mean" if idx + 1 == 1 else "se" if idx + 1 == 2 else "worst"
+            column_value = "mean" if idx == 0 else "se" if idx == 1 else "worst"
             st.markdown(f"**Feature Set ({column_value})**")
             for feature in group:
                 # Get min, max, and mean values from the dataset for slider range and default
-                min_val = float(data[feature].min() - 0.1 * data[feature].min())
-                max_val = float(data[feature].max() + 0.1 * data[feature].min())
+                min_val = float(data[feature].min() - 0.1 * data[feature].std()) # Extend range slightly
+                max_val = float(data[feature].max() + 0.1 * data[feature].std()) # Extend range slightly
                 mean_val = float(data[feature].mean())
-                
-                # Use value from session state if set by random entry, otherwise use mean
+
+                # Use value from session state if set by random entry, otherwise use mean as default
                 current_slider_value = st.session_state.get(f"input_slider_{feature}", mean_val)
 
                 # Create a slider for each feature
                 feature_values[feature] = st.slider(
-                    f"{feature} ", # Display min/max for context
+                    f"{feature} ",
                     min_val,
                     max_val,
-                    current_slider_value, # Use the dynamic value
+                    current_slider_value,
                     key=f"input_slider_{feature}" # Unique key for each slider
                 )
 
-    # Convert the collected feature values into a Pandas DataFrame
+    # Convert the collected feature values into a Pandas DataFrame for prediction
     input_df_raw = pd.DataFrame([feature_values])
+    # Ensure the order of columns matches the original features
     input_df_raw = input_df_raw[features_for_input]
 
     st.markdown("---")
 
     # --- Model Configuration Grid ---
-    st.subheader("📊 Configure Models")
+    st.subheader("Configure Models")
 
     # Define the total number of model slots (3x3 grid = 9 slots)
     num_model_slots = 9
-    
+
     # Create the 3x3 grid layout for model configuration
     for i in range(math.ceil(num_model_slots / 3)): # Loop for rows
         # Use explicit widths for columns to add space between them
@@ -188,7 +203,7 @@ def main():
             if idx < num_model_slots: # Ensure we don't go beyond 9 slots
                 with row_cols[content_col_indices[j]]: # Place content in the designated content column
                     st.markdown(f"#### Model Slot {idx+1}")
-                    
+
                     # Selectbox for choosing the model type for this slot
                     model_type = st.selectbox(
                         f"Model Type {idx+1}",
@@ -197,26 +212,22 @@ def main():
                             if st.session_state.models_custom_entry[idx]["type"] in default_model_types else 0,
                         key=f"model_type_slot_{idx}"
                     )
-                    
+
                     model_params = {} # Dictionary to store model-specific parameters for this slot
 
                     # Conditional parameter inputs based on selected model type
                     if model_type == "Logistic Regression":
                         C = st.select_slider(f"C ", options=[0.01, 0.1, 1, 10, 100], value=1, key=f"C_{idx}")
                         penalty = st.selectbox(f"Penalty ", ["l2", "l1", "elasticnet"], key=f"penalty_{idx}")
-                        if penalty == 'l1':
-                            available_solvers = ["liblinear", "saga"]
-                        elif penalty == 'elasticnet':
-                            available_solvers = ["saga"]
-                        elif penalty == 'none':
-                            available_solvers = ["lbfgs", "saga"]
-                        else:
-                            available_solvers = ["lbfgs", "liblinear", "newton-cg", "sag", "saga"]
+                        # Solver options depend on the selected penalty
+                        if penalty == 'l1': available_solvers = ["liblinear", "saga"]
+                        elif penalty == 'elasticnet': available_solvers = ["saga"]
+                        elif penalty == 'none': available_solvers = ["lbfgs", "saga"]
+                        else: available_solvers = ["lbfgs", "liblinear", "newton-cg", "sag", "saga"]
                         solver = st.selectbox(f"Solver ",available_solvers, key=f"solver_{idx}")
                         fit_intercept = st.checkbox(f"Fit Intercept ", value=True, key=f"fit_int_{idx}")
                         class_weight = st.selectbox(f"Class Weight ", [None, "balanced"], key=f"lw_{idx}")
-                        if penalty == 'elasticnet': l1_ratio = 1
-                        else: l1_ratio= None
+                        l1_ratio = 1 if penalty == 'elasticnet' else None # l1_ratio only relevant for elasticnet
                         model_params = {"C": C, "penalty": penalty, "solver": solver, "max_iter": 1000, "fit_intercept": fit_intercept, "class_weight": class_weight, "l1_ratio": l1_ratio}
 
                     elif model_type == "Random Forest":
@@ -287,10 +298,9 @@ def main():
                         model_params = {"n_estimators": n_estimators, "learning_rate": learning_rate, "num_leaves": num_leaves,
                                         "max_depth": max_depth, "reg_alpha": reg_alpha, "reg_lambda": reg_lambda,
                                         "random_state": 42}
-                        
-                
-                    
-                    # Store the configured model type and parameters for this slot
+
+
+                    # Store the configured model type and parameters for this slot in session state
                     st.session_state.models_custom_entry[idx] = {"type": model_type, "params": model_params}
 
         # Add a horizontal separator after each row of model configurations
@@ -300,60 +310,55 @@ def main():
     with st.sidebar:
         st.markdown("---")
         st.subheader("Data Source")
+        # Radio button to select data source for model training
         data_source_option = st.radio(
             "Select data for training models:",
             ("Original Data", "Preprocessed Data"),
             key="data_source_selector"
         )
 
-        # Determine if the train button should be disabled
-        train_button_disabled = False 
+        # Determine if the train button should be disabled based on preprocessed data availability
+        train_button_disabled = False
         if data_source_option == "Preprocessed Data":
-            # The button is disabled if preprocessed data is selected AND it's not available/empty
             if "preprocessed_X" not in st.session_state or st.session_state.preprocessed_X is None or st.session_state.preprocessed_X.empty:
-                st.warning("Preprocessed data not found or is empty. Please select at least one preprocessing step from the \" ML Models\" page")
-                train_button_disabled = True # Disable if data is missing or empty
+                st.warning("Preprocessed data not found or is empty. Please select at least one preprocessing step from the \"ML Models\" page.")
+                train_button_disabled = True
             else:
-                st.info(f"Preprocessed Data Shape: {st.session_state.preprocessed_X.shape}") # Display shape here
-        
+                st.info(f"Preprocessed Data Shape: {st.session_state.preprocessed_X.shape}")
+
         st.markdown("---")
         st.subheader("Action")
-        # Ensure the button is always rendered, controlling visibility via disabled state
+        # Button to trigger training all configured models and classifying the custom entry
         train_and_classify_button = st.button("🏁 Train All Models & Classify Custom Entry", disabled=train_button_disabled)
 
     # --- Training and Prediction Logic (triggered by the single button) ---
     if train_and_classify_button:
         with st.spinner("Training all configured models and classifying custom entry... This might take a moment."):
             st.session_state.trained_models_custom_entry = {} # Clear previous trained models
-            
-            # Prepare the data for training based on selection
+
+            # Prepare the base data for training
             X_train_data_raw = data.drop(columns=["id", "diagnosis", "Unnamed: 32"], errors='ignore')
             y_train_target = data["diagnosis"]
 
-            # Initialize variables to be used in the loop
+            # Initialize variables for data used in model training and for storing fitted transformers
             X_data_for_model_training = None
             y_data_for_model_training = None
             data_source_type_for_model_storage = data_source_option.lower().replace(" ", "_") # 'original_data' or 'preprocessed_data'
-            fitted_transformers_for_model_storage = {} # This will store locally fitted transformers if 'Preprocessed Data' is chosen and preprocessing is applied here
+            fitted_transformers_for_model_storage = {} # Stores transformers if preprocessing is applied locally here
 
             if data_source_option == "Original Data":
                 X_data_for_model_training = X_train_data_raw.copy()
                 y_data_for_model_training = y_train_target.copy()
-            else: # Preprocessed Data selected. This branch will now apply preprocessing locally
-                # Ensure preprocessing_config is available (from previous steps if not set explicitly on this page)
-                # If you want to configure preprocessing on this page, the options would be here.
-                # Since you want to use the output from Compare Models, we assume that config is saved globally.
+            else: # "Preprocessed Data" selected
+                # Retrieve preprocessing configuration from the "Compare Models" page's session state
                 if "preprocessing_config_applied" not in st.session_state or not st.session_state.preprocessing_config_applied:
                     st.error("Preprocessed data is selected but no preprocessing configuration found from 'Compare Models' page. Cannot apply transformations.")
                     st.session_state.classify_now = False
                     return # Stop execution
 
-                # Re-apply preprocessing logic to X_train_data_raw to get X_data_for_model_training
-                # and capture the fitted transformers here.
+                # Apply preprocessing steps to the raw data to prepare it for training models on this page
                 X_processed_for_training = X_train_data_raw.copy()
                 y_processed_for_training = y_train_target.copy()
-                
-                # Retrieve the config from the "Compare Models" page
                 preprocessing_config_from_compare = st.session_state.preprocessing_config_applied
 
                 # Manually apply preprocessing steps to X_processed_for_training and capture fitted transformers
@@ -376,7 +381,7 @@ def main():
                         X_processed_for_training = pd.DataFrame(X_processed_for_training, columns=X_train_data_raw.columns)
 
                 # Missing Value Imputation
-                if 'missing_values' in preprocessing_config_from_compare:
+                if 'missing_values' in preprocessing_config_from_compare and X_processed_for_training.isnull().sum().sum() > 0:
                     if preprocessing_config_from_compare['missing_values'] == "Drop Rows":
                         combined_df = pd.concat([X_processed_for_training, y_processed_for_training], axis=1)
                         combined_df.dropna(inplace=True)
@@ -430,66 +435,59 @@ def main():
                     elif preprocessing_config_from_compare['imbalance_handling'] == "Undersampling (Random)":
                         undersampler = RandomUnderSampler(random_state=42)
                         X_processed_for_training, y_processed_for_training = undersampler.fit_resample(X_processed_for_training, y_processed_for_training)
-                
+
                 X_data_for_model_training = X_processed_for_training
                 y_data_for_model_training = y_processed_for_training
 
 
-            # Loop through each model slot to train and classify
+            # Loop through each model slot to train and store the model
             for i in range(num_model_slots):
                 config = st.session_state.models_custom_entry[i]
-                if not config: # Skip if slot is empty
+                if not config or config['type'] == "None": # Skip if slot is empty or set to "None"
                     continue
 
-                # Instantiate the classifier model
+                # Instantiate the classifier model based on user selection
                 model = None
-                if config['type'] == "Logistic Regression":
-                    model = LogisticRegression(**config['params'])
-                elif config['type'] == "Random Forest":
-                    model = RandomForestClassifier(**config['params'])
-                elif config['type'] == "SVM":
-                    model = SVC(probability=True, **config['params'])
-                elif config['type'] == "Gradient Boosting":
-                    model = GradientBoostingClassifier(**config['params'])
-                elif config['type'] == "K-Nearest Neighbors":
-                    model = KNeighborsClassifier(**config['params'])
-                elif config['type'] == "Naive Bayes":
-                    model = GaussianNB(**config['params'])
-                elif config['type'] == "Decision Tree":
-                    model = DecisionTreeClassifier(**config['params'])
-                elif config['type'] == "XGBoost":
-                    model = XGBClassifier(**config['params'])
-                elif config['type'] == "LightGBM":
-                    model = LGBMClassifier(**config['params'])
-                elif config['type'] == "None":
-                    model = None
-                
+                if config['type'] == "Logistic Regression": model = LogisticRegression(**config['params'])
+                elif config['type'] == "Random Forest": model = RandomForestClassifier(**config['params'])
+                elif config['type'] == "SVM": model = SVC(probability=True, **config['params'])
+                elif config['type'] == "Gradient Boosting": model = GradientBoostingClassifier(**config['params'])
+                elif config['type'] == "K-Nearest Neighbors": model = KNeighborsClassifier(**config['params'])
+                elif config['type'] == "Naive Bayes": model = GaussianNB(**config['params'])
+                elif config['type'] == "Decision Tree": model = DecisionTreeClassifier(**config['params'])
+                elif config['type'] == "XGBoost": model = XGBClassifier(**config['params'])
+                elif config['type'] == "LightGBM": model = LGBMClassifier(**config['params'])
+
                 if model is not None:
                     try:
-                        # Use the appropriate data for training based on data_source_option
-                        st.warning(model)
+                        # Train the model using the prepared data
+                        st.info(model)
                         model.fit(X_data_for_model_training, y_data_for_model_training)
-                        
+
+                        # Store the trained model and associated information in session state
                         st.session_state.trained_models_custom_entry[f"Model Slot {i+1}: {config['type']}"] = {
                             'model': model,
-                            'original_features': features_for_input, # Always store original feature names
+                            'original_features': features_for_input, # Always store original feature names for consistent input
                             'model_params': config['params'],
-                            'data_source_type': data_source_type_for_model_storage, # Store which data type was used
-                            'fitted_transformers': fitted_transformers_for_model_storage # Store fitted transformers for prediction
+                            'data_source_type': data_source_type_for_model_storage, # Store which data type was used for training
+                            'fitted_transformers': fitted_transformers_for_model_storage # Store fitted transformers for new predictions
                         }
-                        
+
                     except Exception as e:
                         st.error(f"Error training Model Slot {i+1} ({config['type']}): {e}")
                         st.warning("Please check model parameters and data consistency. If using preprocessed data, ensure it's available from 'Compare Models' page.")
 
             st.success("All configured models have been trained!")
-            st.session_state.classify_now = True # Trigger classification display
+            st.session_state.classify_now = True # Trigger classification display after training
+
 
     # --- Display Classification Results in Model Boxes ---
+    # This section runs after models are trained and 'classify_now' is True
     if "classify_now" in st.session_state and st.session_state.classify_now:
         st.markdown("---")
-        st.subheader("🚀 Custom Entry Classification Results")
-        
+        st.subheader("Custom Entry Classification Results")
+
+        # Create a grid for displaying results from each model slot
         for i in range(math.ceil(num_model_slots / 3)):
             row_cols = st.columns([1, 0.05, 1, 0.05, 1])
             content_col_indices = [0, 2, 4]
@@ -504,14 +502,16 @@ def main():
                         st.markdown(f"#### Model Slot {idx+1}: {model_type}")
 
                         with st.container(border=True):
+                            # Check if the model for this slot was successfully trained
                             if trained_model_key in st.session_state.trained_models_custom_entry:
                                 stored_model_info = st.session_state.trained_models_custom_entry[trained_model_key]
                                 model_for_display = stored_model_info['model']
                                 data_source_type_used = stored_model_info['data_source_type']
-                                
+
                                 # Prepare input for prediction based on data source type used during training
                                 input_for_prediction_display = None
                                 if data_source_type_used == 'original_data':
+                                    # If trained on original data, use raw input directly
                                     input_for_prediction_display = input_df_raw[features_for_input]
                                 else: # 'preprocessed_data'
                                     # Apply the same preprocessing steps to the custom input using stored transformers
@@ -525,12 +525,11 @@ def main():
                                             )
                                         except Exception as e_prep:
                                             st.error(f"Error preprocessing custom input for {model_type}: {e_prep}")
-                                            st.info("Ensure preprocessing steps on 'Compare Models' page were compatible.")
+                                            st.info("Ensure preprocessing steps on 'Compare Models' page were compatible with single-row input.")
                                             input_for_prediction_display = None
                                     else:
-                                        # If no transformers were fitted, the raw input is used as the preprocessed input
-                                        # This means preprocessing on 2_Compare_Models.py was 'in-place' (e.g., outlier removal, resampling, dropping rows)
-                                        # and didn't generate any fit-transform objects.
+                                        # If no transformers were fitted (e.g., only outlier removal or resampling),
+                                        # the raw input is used as the preprocessed input directly.
                                         input_for_prediction_display = input_df_raw[features_for_input]
 
                                 # Perform prediction if input is ready
@@ -539,6 +538,7 @@ def main():
                                         prediction = model_for_display.predict(input_for_prediction_display)[0]
                                         prediction_label = "Malignant" if prediction == 1 else "Benign"
 
+                                        # Display prediction and confidence if available
                                         if hasattr(model_for_display, 'predict_proba'):
                                             probabilities = model_for_display.predict_proba(input_for_prediction_display)[0]
                                             confidence = probabilities[prediction] * 100
@@ -549,17 +549,17 @@ def main():
                                             st.info(f"Confidence: {confidence:.2f}%")
                                         else:
                                             st.success(f"Prediction: **{prediction_label}**")
-                                            st.info("Confidence not available for this model type.")
+                                            st.info("Confidence (probability) not available for this model type.")
                                     except Exception as e:
                                         st.warning(f"Could not classify with Model {model_type}: {e}")
-                                        st.info("Please re-train the models if you changed input features or parameters.")
+                                        st.info("Please re-train the models if you changed input features or parameters. Check logs for details.")
                                 else:
                                     st.warning("Prediction skipped due to preprocessing error.")
                             else:
-                                st.info("No model selected.")
+                                st.info("No model trained in this slot.")
                                 st.markdown("Prediction: N/A")
                                 st.markdown("Confidence: N/A")
-        st.session_state.classify_now = False
+        st.session_state.classify_now = False # Reset flag after displaying results
 
 if __name__ == "__main__":
     main()
