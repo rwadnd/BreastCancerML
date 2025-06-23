@@ -77,13 +77,12 @@ streamlit run streamlit_app.py
 ```
 
 ---
-
+[![My Skills](https://skillicons.dev/icons?i=docker)](https://docs.docker.com)
 ### OR Using Docker
 make sure Docker Engine is running then run the following command:
 ```bash
 docker run -p 8501:8501 rwadnd/breast-cancer-ml:v1.0
 ```
-
 ---
 
 ## 📄 License
