@@ -81,7 +81,7 @@ streamlit run streamlit_app.py
 ### OR Using Docker
 make sure Docker Engine is running then run the following command:
 ```bash
-docker run -p 5081:5081 rwadnd/breast-cancer-ml:latest
+docker run -p 8501:8501 rwadnd/breast-cancer-ml:v1.0
 ```
 
 ---
