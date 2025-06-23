@@ -67,6 +67,8 @@ This interactive web application was developed as part of the **Baykar Milli Tek
 
 ### Installation
 
+> ⚠️ You must have a Kaggle API token and credentials to download the dataset via `kagglehub`. Set it up as shown in the [kagglehub documentation](https://github.com/MLH-Fellowship/kagglehub).
+
 ```bash
 git clone https://github.com/rwadnd/BreastCancerML.git
 cd BreastCancerML
@@ -74,7 +76,13 @@ pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
 
-> ⚠️ You must have a Kaggle API token and credentials to download the dataset via `kagglehub`. Set it up as shown in the [kagglehub documentation](https://github.com/MLH-Fellowship/kagglehub).
+---
+
+### OR Using Docker
+make sure Docker Engine is running then run the following command:
+```bash
+docker run -p 5081:5081 rwadnd/breast-cancer-ml:latest
+```
 
 ---
 
