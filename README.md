@@ -1,6 +1,6 @@
 # 🩺 Breast Cancer Classification Dashboard
 
-This interactive web application was developed as part of the **Baykar Milli Teknoloji Akademesi - Yapay Zeka Uzmanlık Programı** graduation project. It enables users to explore the **Breast Cancer Wisconsin (Diagnostic) Dataset**, apply various preprocessing techniques, compare machine learning and deep learning models, and make real-time predictions on custom entries.
+This interactive web application was developed as part of the **Milli Teknoloji Akademesi - Yapay Zeka Uzmanlık Programı** graduation project. It enables users to explore the **Breast Cancer Wisconsin (Diagnostic) Dataset**, apply various preprocessing techniques, compare machine learning and deep learning models, and make real-time predictions on custom entries.
 
 🚀 **Live App**: <a href="https://breastcancerml.streamlit.app" target="_blank">breastcancerml.streamlit.app</a>
 
